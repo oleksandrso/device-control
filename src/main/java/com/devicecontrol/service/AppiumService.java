@@ -1,23 +1,26 @@
 package com.devicecontrol.service;
 
-import com.codeborne.selenide.WebDriverProvider;
+import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.Selenide;
+import com.devicecontrol.drivers.IOSLocalDriver;
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.ios.IOSDriver;
-import org.openqa.selenium.Capabilities;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.springframework.stereotype.Service;
 
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class AppiumService implements WebDriverProvider {
+public class AppiumService {
+
     private final Map<String, AppiumDriver> drivers = new HashMap<>();
 
     public void startSession(String udid) throws Exception {
         if (!drivers.containsKey(udid)) {
-            AppiumDriver driver = createDriver(createCapabilities(udid));
+            // Настраиваем Selenide для использования нашего драйвера
+            Configuration.browser = IOSLocalDriver.class.getName();
+
+            // Запускаем драйвер через Selenide
+            AppiumDriver driver = (AppiumDriver) Selenide.webdriver().driver().getWebDriver();
             drivers.put(udid, driver);
         }
     }
@@ -32,23 +35,5 @@ public class AppiumService implements WebDriverProvider {
             driver.quit();
             drivers.remove(udid);
         }
-    }
-
-    @Override
-    public AppiumDriver createDriver(Capabilities capabilities) {
-        try {
-            return new IOSDriver(new URL("http://192.168.0.118:4723"), capabilities);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create Appium driver", e);
-        }
-    }
-
-    private Capabilities createCapabilities(String udid) {
-        DesiredCapabilities capabilities = new DesiredCapabilities();
-        capabilities.setCapability("UDID", udid);
-        capabilities.setCapability("platformName", "iOS");
-        capabilities.setCapability("automationName", "XCUITest");
-        capabilities.setCapability("usePrebuiltWDA", true);
-        return capabilities;
     }
 }
