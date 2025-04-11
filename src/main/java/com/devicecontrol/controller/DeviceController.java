@@ -1,5 +1,6 @@
 package com.devicecontrol.controller;
 
+import com.codeborne.selenide.Selenide;
 import com.devicecontrol.service.AppiumService;
 import io.appium.java_client.AppiumDriver;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +43,7 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getDriver(udid);
             if (driver != null) {
-                Map<String, Object> params = new HashMap<>();
-                params.put("x", x);
-                params.put("y", y);
-                driver.executeScript("mobile: tap", params);
+                Selenide.executeJavaScript("mobile: tap", Map.of("x", x, "y", y));
                 response.put("status", "success");
                 return ResponseEntity.ok(response);
             }
@@ -70,13 +68,13 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getDriver(udid);
             if (driver != null) {
-                Map<String, Object> params = new HashMap<>();
-                params.put("fromX", startX);
-                params.put("fromY", startY);
-                params.put("toX", endX);
-                params.put("toY", endY);
-                params.put("duration", 1.0);
-                driver.executeScript("mobile: dragFromToForDuration", params);
+                Selenide.executeJavaScript("mobile: dragFromToForDuration", Map.of(
+                        "fromX", startX,
+                        "fromY", startY,
+                        "toX", endX,
+                        "toY", endY,
+                        "duration", 1.0
+                ));
                 response.put("status", "success");
                 return ResponseEntity.ok(response);
             }
@@ -98,9 +96,7 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getDriver(udid);
             if (driver != null) {
-                Map<String, Object> params = new HashMap<>();
-                params.put("value", text);
-                driver.executeScript("mobile: type", params);
+                Selenide.executeJavaScript("mobile: type", Map.of("value", text));
                 response.put("status", "success");
                 return ResponseEntity.ok(response);
             }

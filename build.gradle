@@ -1,19 +1,26 @@
 plugins {
-    id 'org.springframework.boot' version '2.7.18'
+    id 'org.springframework.boot' version '3.2.5'
     id 'io.spring.dependency-management' version '1.1.4'
     id 'java'
 }
 
 group = 'com.devicecontrol'
 version = '1.0-SNAPSHOT'
+sourceCompatibility = '17'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    // Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'io.appium:java-client:8.5.1'
+
+    // Appium Java Client
+    implementation 'io.appium:java-client:9.2.2'
+
+    implementation 'com.codeborne:selenide:7.3.2'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
