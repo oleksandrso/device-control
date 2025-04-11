@@ -16,16 +16,23 @@ dependencies {
     // Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-    // Appium Java Client
-    implementation 'io.appium:java-client:9.2.2'
+    // Appium Java Client (понижаем до 9.1.0 для совместимости с Selenium 4.15.0)
+    implementation 'io.appium:java-client:9.1.0'
 
-    implementation 'com.codeborne:selenide:7.3.2'
+    // Selenide
+    implementation 'com.codeborne:selenide:7.2.2'
 
+//    // Явно указываем Selenium 4.15.0, чтобы избежать конфликта
+//    implementation 'org.seleniumhq.selenium:selenium-java:4.15.0'
+
+    // TestNG
+    testImplementation 'org.testng:testng:7.8.0'
+    testImplementation 'com.codeborne:selenide:7.2.2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 test {
-    useJUnitPlatform()
+    useTestNG()
 }
 
 springBoot {

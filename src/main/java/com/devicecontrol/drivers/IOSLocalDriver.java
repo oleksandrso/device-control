@@ -7,14 +7,12 @@ import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.WebDriver;
 
 import javax.annotation.Nonnull;
-
 import java.net.URL;
 
-import static io.appium.java_client.remote.MobileCapabilityType.*;
 
 public class IOSLocalDriver implements WebDriverProvider {
 
-    public static final String DEVICE_UDID = "86c1c3528327635aa5bc664d5dd4b51c7af0a03";
+    public static final String DEVICE_UDID = "86c1c3528327635aa5bcf664d5dd4b51cc7af0a3";
     public static final String APPIUM_SERVER_URL = "http://192.168.0.118:4723";
 
     @Nonnull
@@ -23,10 +21,11 @@ public class IOSLocalDriver implements WebDriverProvider {
         MutableCapabilities desiredCapabilities = new MutableCapabilities();
         desiredCapabilities.merge(capabilities);
 
-        desiredCapabilities.setCapability(PLATFORM_NAME, "iOS");
-        desiredCapabilities.setCapability(AUTOMATION_NAME, "XCUITest");
-        desiredCapabilities.setCapability(UDID, DEVICE_UDID);
-        desiredCapabilities.setCapability("usePrebuiltWDA", true);
+        desiredCapabilities.setCapability("platformName", "iOS");
+        desiredCapabilities.setCapability("automationName", "XCUITest");
+        desiredCapabilities.setCapability("deviceName", "XCUITest");
+//        desiredCapabilities.setCapability("UDID", DEVICE_UDID);
+//        desiredCapabilities.setCapability("usePrebuiltWDA", true);
 
         try {
             return new IOSDriver(new URL(APPIUM_SERVER_URL), desiredCapabilities);
