@@ -14,6 +14,7 @@ public class IOSLocalDriver implements WebDriverProvider {
 
     public static final String DEVICE_UDID = "86c1c3528327635aa5bcf664d5dd4b51cc7af0a3";
     public static final String APPIUM_SERVER_URL = "http://192.168.0.118:4723";
+    public static final String DEVICE_NAME = "admin's iPhone";
 
     @Nonnull
     @Override
@@ -23,9 +24,10 @@ public class IOSLocalDriver implements WebDriverProvider {
 
         desiredCapabilities.setCapability("platformName", "iOS");
         desiredCapabilities.setCapability("automationName", "XCUITest");
-        desiredCapabilities.setCapability("deviceName", "XCUITest");
-//        desiredCapabilities.setCapability("UDID", DEVICE_UDID);
-//        desiredCapabilities.setCapability("usePrebuiltWDA", true);
+        desiredCapabilities.setCapability("udid", DEVICE_UDID);
+        desiredCapabilities.setCapability("deviceName", DEVICE_NAME);
+        desiredCapabilities.setCapability("usePrebuiltWDA", true);
+        desiredCapabilities.setCapability("noReset", true);
 
         try {
             return new IOSDriver(new URL(APPIUM_SERVER_URL), desiredCapabilities);

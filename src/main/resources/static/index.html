@@ -4,24 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Device Control</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #screen { max-width: 100%; border: 1px solid #ccc; }
-        .controls { margin: 20px 0; }
-        input, button { margin: 5px; padding: 5px; }
-    </style>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <h1>Device Control</h1>
-<div>
-    <img id="screen" src="" alt="Device Screen">
+<div class="screen-container">
+    <img id="screen" src="" alt="Device Screen" onclick="tapOnImage(event)">
 </div>
 <div class="controls">
-    <h3>Tap</h3>
-    <input type="number" id="tapX" placeholder="X coordinate" value="100">
-    <input type="number" id="tapY" placeholder="Y coordinate" value="100">
-    <button onclick="tap()">Tap</button>
-
     <h3>Swipe</h3>
     <input type="number" id="startX" placeholder="Start X" value="100">
     <input type="number" id="startY" placeholder="Start Y" value="100">
@@ -35,60 +25,12 @@
 
     <h3>Refresh Screenshot</h3>
     <button onclick="refreshScreenshot()">Refresh</button>
+
+    <h3>Stop Session</h3>
+    <button onclick="stopSession()">Stop Session</button>
 </div>
 
-<script>
-    const udid = "86c1c3528327635aa5bc664d5dd4b51c7af0a03";
-
-    // Инициализация сессии
-    fetch('/api/start_session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ udid: udid })
-    }).then(res => res.json()).then(data => console.log(data));
-
-    async function tap() {
-        const x = parseInt(document.getElementById('tapX').value);
-        const y = parseInt(document.getElementById('tapY').value);
-        await fetch('/api/tap', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ udid: udid, x: x, y: y })
-        });
-        refreshScreenshot();
-    }
-
-    async function swipe() {
-        const startX = parseInt(document.getElementById('startX').value);
-        const startY = parseInt(document.getElementById('startY').value);
-        const endX = parseInt(document.getElementById('endX').value);
-        const endY = parseInt(document.getElementById('endY').value);
-        await fetch('/api/swipe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ udid: udid, start_x: startX, start_y: startY, end_x: endX, end_y: endY })
-        });
-        refreshScreenshot();
-    }
-
-    async function typeText() {
-        const text = document.getElementById('textInput').value;
-        await fetch('/api/type', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ udid: udid, text: text })
-        });
-        refreshScreenshot();
-    }
-
-    function refreshScreenshot() {
-        const screen = document.getElementById('screen');
-        screen.src = `/api/screenshot/${udid}?t=${new Date().getTime()}`;
-    }
-
-    // Обновляем скриншот каждые 2 секунды
-    setInterval(refreshScreenshot, 2000);
-    refreshScreenshot();
-</script>
+<script src="/script.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ea5318ce9bbf96',t:'MTc0NDM3MjgzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

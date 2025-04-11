@@ -1,0 +1,28 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+.screen-container {
+    width: 360px;
+    height: 640px;
+    margin: 0 auto;
+    border: 2px solid #ccc;
+    border-radius: 15px;
+    overflow: hidden;
+    background-color: #000;
+}
+#screen {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+}
+.controls {
+    margin: 20px 0;
+}
+input, button {
+    margin: 5px;
+    padding: 5px;
+}
