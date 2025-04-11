@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Control</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #screen { max-width: 100%; border: 1px solid #ccc; }
+        .controls { margin: 20px 0; }
+        input, button { margin: 5px; padding: 5px; }
+    </style>
+</head>
+<body>
+<h1>Device Control</h1>
+<div>
+    <img id="screen" src="" alt="Device Screen">
+</div>
+<div class="controls">
+    <h3>Tap</h3>
+    <input type="number" id="tapX" placeholder="X coordinate" value="100">
+    <input type="number" id="tapY" placeholder="Y coordinate" value="100">
+    <button onclick="tap()">Tap</button>
+
+    <h3>Swipe</h3>
+    <input type="number" id="startX" placeholder="Start X" value="100">
+    <input type="number" id="startY" placeholder="Start Y" value="100">
+    <input type="number" id="endX" placeholder="End X" value="200">
+    <input type="number" id="endY" placeholder="End Y" value="200">
+    <button onclick="swipe()">Swipe</button>
+
+    <h3>Type Text</h3>
+    <input type="text" id="textInput" placeholder="Enter text">
+    <button onclick="typeText()">Type</button>
+
+    <h3>Refresh Screenshot</h3>
+    <button onclick="refreshScreenshot()">Refresh</button>
+</div>
+
+<script>
+    const udid = "86c1c3528327635aa5bc664d5dd4b51c7af0a03";
+
+    // Инициализация сессии
+    fetch('/api/start_session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ udid: udid })
+    }).then(res => res.json()).then(data => console.log(data));
+
+    async function tap() {
+        const x = parseInt(document.getElementById('tapX').value);
+        const y = parseInt(document.getElementById('tapY').value);
+        await fetch('/api/tap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ udid: udid, x: x, y: y })
+        });
+        refreshScreenshot();
+    }
+
+    async function swipe() {
+        const startX = parseInt(document.getElementById('startX').value);
+        const startY = parseInt(document.getElementById('startY').value);
+        const endX = parseInt(document.getElementById('endX').value);
+        const endY = parseInt(document.getElementById('endY').value);
+        await fetch('/api/swipe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ udid: udid, start_x: startX, start_y: startY, end_x: endX, end_y: endY })
+        });
+        refreshScreenshot();
+    }
+
+    async function typeText() {
+        const text = document.getElementById('textInput').value;
+        await fetch('/api/type', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ udid: udid, text: text })
+        });
+        refreshScreenshot();
+    }
+
+    function refreshScreenshot() {
+        const screen = document.getElementById('screen');
+        screen.src = `/api/screenshot/${udid}?t=${new Date().getTime()}`;
+    }
+
+    // Обновляем скриншот каждые 2 секунды
+    setInterval(refreshScreenshot, 2000);
+    refreshScreenshot();
+</script>
+</body>
+</html>
