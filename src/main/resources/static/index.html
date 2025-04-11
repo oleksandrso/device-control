@@ -9,28 +9,14 @@
 <body>
 <h1>Device Control</h1>
 <div class="screen-container">
-    <img id="screen" src="" alt="Device Screen" onclick="tapOnImage(event)">
+    <img id="screen" src="" alt="Device Screen" onclick="tapOnImage(event)" onmousedown="startSwipe(event)" onmousemove="updateSwipe(event)" onmouseup="endSwipe(event)">
 </div>
-<div class="controls">
-    <h3>Swipe</h3>
-    <input type="number" id="startX" placeholder="Start X" value="100">
-    <input type="number" id="startY" placeholder="Start Y" value="100">
-    <input type="number" id="endX" placeholder="End X" value="200">
-    <input type="number" id="endY" placeholder="End Y" value="200">
-    <button onclick="swipe()">Swipe</button>
-
-    <h3>Type Text</h3>
-    <input type="text" id="textInput" placeholder="Enter text">
-    <button onclick="typeText()">Type</button>
-
-    <h3>Refresh Screenshot</h3>
-    <button onclick="refreshScreenshot()">Refresh</button>
-
-    <h3>Stop Session</h3>
-    <button onclick="stopSession()">Stop Session</button>
+<div class="bottom-controls">
+    <button id="home-btn" onmousedown="startHomePress(event)" onmouseup="endHomePress(event)">Home</button>
+    <input type="text" id="textInput" placeholder="Type text here" onkeydown="if(event.key === 'Enter') typeText()">
 </div>
 
 <script src="/script.js"></script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ea5318ce9bbf96',t:'MTc0NDM3MjgzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ea7f731d86ef66',t:'MTc0NDM3NDY1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

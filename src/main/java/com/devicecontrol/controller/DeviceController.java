@@ -150,6 +150,59 @@ public class DeviceController {
         }
     }
 
+    @PostMapping("/press_home")
+    public ResponseEntity<Map<String, String>> pressHome(@RequestBody Map<String, String> request) {
+        String udid = request.get("udid");
+        System.out.println("Received press home request for UDID: " + udid);
+        Map<String, String> response = new HashMap<>();
+        try {
+            AppiumDriver driver = appiumService.getDriver(udid);
+            if (driver != null) {
+                driver.executeScript("mobile: pressButton", Map.of("name", "home"));
+                response.put("status", "success");
+                System.out.println("Home button pressed successfully for UDID: " + udid);
+                return ResponseEntity.ok(response);
+            }
+            response.put("status", "error");
+            response.put("message", "No session found");
+            System.out.println("No session found for UDID: " + udid);
+            return ResponseEntity.status(404).body(response);
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            System.err.println("Press home failed for UDID: " + udid + ". Error: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+    @PostMapping("/long_press_home")
+    public ResponseEntity<Map<String, String>> longPressHome(@RequestBody Map<String, String> request) {
+        String udid = request.get("udid");
+        System.out.println("Received long press home request for UDID: " + udid);
+        Map<String, String> response = new HashMap<>();
+        try {
+            AppiumDriver driver = appiumService.getDriver(udid);
+            if (driver != null) {
+                // Долгое нажатие кнопки Home (например, для вызова Siri)
+                Map<String, Object> params = new HashMap<>();
+                params.put("name", "home");
+                params.put("duration", 2.0); // 2 секунды для долгого нажатия
+                ((IOSDriver) driver).executeScript("mobile: pressButton", params);
+                response.put("status", "success");
+                System.out.println("Home button long pressed successfully for UDID: " + udid);
+                return ResponseEntity.ok(response);
+            }
+            response.put("status", "error");
+            response.put("message", "No session found");
+            System.out.println("No session found for UDID: " + udid);
+            return ResponseEntity.status(404).body(response);
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            System.err.println("Long press home failed for UDID: " + udid + ". Error: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
     @GetMapping("/screenshot/{udid}")
     public ResponseEntity<byte[]> screenshot(@PathVariable String udid) {
         System.out.println("Received screenshot request for UDID: " + udid);
