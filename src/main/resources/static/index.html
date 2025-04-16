@@ -3,20 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Control</title>
-    <link rel="stylesheet" href="/styles.css">
+    <title>Device Selection</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-<h1>Device Control</h1>
-<div class="screen-container">
-    <img id="screen" src="" alt="Device Screen" onclick="tapOnImage(event)" onmousedown="startSwipe(event)" onmousemove="updateSwipe(event)" onmouseup="endSwipe(event)">
+<div class="header">
+    <h1>Device Control</h1>
+    <button id="theme-toggle">Toggle Theme</button>
 </div>
-<div class="bottom-controls">
-    <button id="home-btn" onmousedown="startHomePress(event)" onmouseup="endHomePress(event)">Home</button>
-    <input type="text" id="textInput" placeholder="Type text here" onkeydown="if(event.key === 'Enter') typeText()">
+<div class="device-options">
+    <div class="dropdown">
+        <label for="ios-devices">iOS Devices</label>
+        <select id="ios-devices" onchange="selectDevice(this.value)">
+            <option value="" disabled selected>Select iOS Device</option>
+        </select>
+    </div>
+    <div class="dropdown">
+        <label for="android-devices">Android Devices</label>
+        <select id="android-devices" onchange="selectDevice(this.value)">
+            <option value="" disabled selected>Select Android Device</option>
+        </select>
+    </div>
 </div>
+<script src="/js/utils.js"></script>
+<script src="/js/theme.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch('/api/devices')
+            .then(response => response.json())
+            .then(data => {
+                const iosSelect = document.getElementById('ios-devices');
+                const androidSelect = document.getElementById('android-devices');
 
-<script src="/script.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ea5318ce9bbf96',t:'MTc0NDM3MjgzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92ea7f731d86ef66',t:'MTc0NDM3NDY1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+                // iOS Devices
+                if (data.ios.real && Object.keys(data.ios.real).length > 0) {
+                    const iosRealGroup = document.createElement('optgroup');
+                    iosRealGroup.label = 'Real Devices';
+                    Object.entries(data.ios.real).forEach(([udid, name]) => {
+                        const option = document.createElement('option');
+                        option.value = `ios-real|${udid}`;
+                        option.textContent = name;
+                        iosRealGroup.appendChild(option);
+                    });
+                    iosSelect.appendChild(iosRealGroup);
+                }
+                if (data.ios.simulator && Object.keys(data.ios.simulator).length > 0) {
+                    const iosSimGroup = document.createElement('optgroup');
+                    iosSimGroup.label = 'Simulators';
+                    Object.entries(data.ios.simulator).forEach(([udid, name]) => {
+                        const option = document.createElement('option');
+                        option.value = `ios-simulator|${udid}`;
+                        option.textContent = name;
+                        iosSimGroup.appendChild(option);
+                    });
+                    iosSelect.appendChild(iosSimGroup);
+                }
+
+                // Android Devices
+                if (data.android.real && Object.keys(data.android.real).length > 0) {
+                    const androidRealGroup = document.createElement('optgroup');
+                    androidRealGroup.label = 'Real Devices';
+                    Object.entries(data.android.real).forEach(([udid, name]) => {
+                        const option = document.createElement('option');
+                        option.value = `android-real|${udid}`;
+                        option.textContent = name;
+                        androidRealGroup.appendChild(option);
+                    });
+                    androidSelect.appendChild(androidRealGroup);
+                }
+                if (data.android.emulator && Object.keys(data.android.emulator).length > 0) {
+                    const androidEmuGroup = document.createElement('optgroup');
+                    androidEmuGroup.label = 'Emulators';
+                    Object.entries(data.android.emulator).forEach(([udid, name]) => {
+                        const option = document.createElement('option');
+                        option.value = `android-emulator|${udid}`;
+                        option.textContent = name;
+                        androidEmuGroup.appendChild(option);
+                    });
+                    androidSelect.appendChild(androidEmuGroup);
+                }
+            })
+            .catch(error => console.error("Failed to load devices:", error));
+    });
+
+    function selectDevice(value) {
+        if (!value) return;
+        const [deviceType, udid] = value.split('|');
+        selectDeviceFromUtils(deviceType, udid);
+    }
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9309d11d99dfb041',t:'MTc0NDcwMzA1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
 </html>

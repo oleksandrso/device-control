@@ -2,7 +2,6 @@ package com.devicecontrol.controller;
 
 import com.devicecontrol.service.AppiumService;
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.ios.IOSDriver;
 import org.openqa.selenium.OutputType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +18,38 @@ public class DeviceController {
     @Autowired
     private AppiumService appiumService;
 
+    @GetMapping("/devices")
+    public ResponseEntity<Map<String, Map<String, Map<String, String>>>> getDevices() {
+        Map<String, Map<String, Map<String, String>>> devices = new HashMap<>();
+
+        Map<String, Map<String, String>> iosDevices = new HashMap<>();
+        Map<String, String> iosReal = new HashMap<>();
+        iosReal.put("86c1c3528327635aa5bcf664d5dd4b51cc7af0a3", "iPhone 7s");
+        iosDevices.put("real", iosReal);
+        Map<String, String> iosSimulator = new HashMap<>();
+        iosSimulator.put("A126EF10-7E87-4F00-9A39-F9600EA57FDA", "iPhone XS Simulator");
+        iosDevices.put("simulator", iosSimulator);
+
+        Map<String, Map<String, String>> androidDevices = new HashMap<>();
+        Map<String, String> androidReal = new HashMap<>();
+        androidReal.put("PJLZUSTGEQUSSSOR", "Android Real Device");
+        androidDevices.put("real", androidReal);
+        androidDevices.put("emulator", new HashMap<>());
+
+        devices.put("ios", iosDevices);
+        devices.put("android", androidDevices);
+
+        return ResponseEntity.ok(devices);
+    }
+
     @PostMapping("/start_session")
     public ResponseEntity<Map<String, String>> startSession(@RequestBody Map<String, String> request) {
         String udid = request.get("udid");
-        System.out.println("Received request to start session for UDID: " + udid);
+        String deviceType = request.get("deviceType");
+        System.out.println("Starting session for UDID: " + udid + ", Device Type: " + deviceType);
         Map<String, String> response = new HashMap<>();
         try {
-            appiumService.startSession(udid);
+            appiumService.startSession(udid, deviceType);
             response.put("status", "success");
             response.put("message", "Session started for " + udid);
             System.out.println("Session started successfully for UDID: " + udid);
@@ -41,7 +65,7 @@ public class DeviceController {
     @PostMapping("/stop_session")
     public ResponseEntity<Map<String, String>> stopSession(@RequestBody Map<String, String> request) {
         String udid = request.get("udid");
-        System.out.println("Received request to stop session for UDID: " + udid);
+        System.out.println("Stopping session for UDID: " + udid);
         Map<String, String> response = new HashMap<>();
         try {
             appiumService.stopSession(udid);
@@ -62,22 +86,30 @@ public class DeviceController {
         String udid = (String) request.get("udid");
         int x = (int) request.get("x");
         int y = (int) request.get("y");
-        System.out.println("Received tap request for UDID: " + udid + " at coordinates (" + x + ", " + y + ")");
+        String deviceType = (String) request.getOrDefault("deviceType", "ios-real");
+        System.out.println("Tap request for UDID: " + udid + " at (" + x + ", " + y + ")");
         Map<String, String> response = new HashMap<>();
         try {
-            AppiumDriver driver = appiumService.getDriver(udid);
+            AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                Map<String, Object> tapParams = new HashMap<>();
-                tapParams.put("x", x);
-                tapParams.put("y", y);
-                ((IOSDriver) driver).executeScript("mobile: tap", tapParams);
+                Map<String, Object> params = new HashMap<>();
+                if (deviceType.startsWith("ios")) {
+                    params.put("x", x);
+                    params.put("y", y);
+                    params.put("duration", 0);
+                    driver.executeScript("mobile: tap", params);
+                } else {
+                    params.put("x", x);
+                    params.put("y", y);
+                    driver.executeScript("mobile: clickGesture", params);
+                }
                 response.put("status", "success");
                 System.out.println("Tap successful for UDID: " + udid);
                 return ResponseEntity.ok(response);
             }
             response.put("status", "error");
-            response.put("message", "No session found");
-            System.out.println("No session found for UDID: " + udid);
+            response.put("message", "Session not found");
+            System.out.println("Session not found for UDID: " + udid);
             return ResponseEntity.status(404).body(response);
         } catch (Exception e) {
             response.put("status", "error");
@@ -94,25 +126,34 @@ public class DeviceController {
         int startY = (int) request.get("start_y");
         int endX = (int) request.get("end_x");
         int endY = (int) request.get("end_y");
-        System.out.println("Received swipe request for UDID: " + udid + " from (" + startX + ", " + startY + ") to (" + endX + ", " + endY + ")");
+        String deviceType = (String) request.getOrDefault("deviceType", "ios-real");
+        System.out.println("Swipe request for UDID: " + udid + " from (" + startX + ", " + startY + ") to (" + endX + ", " + endY + ")");
         Map<String, String> response = new HashMap<>();
         try {
-            AppiumDriver driver = appiumService.getDriver(udid);
+            AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                Map<String, Object> swipeParams = new HashMap<>();
-                swipeParams.put("fromX", startX);
-                swipeParams.put("fromY", startY);
-                swipeParams.put("toX", endX);
-                swipeParams.put("toY", endY);
-                swipeParams.put("duration", 1.0);
-                ((IOSDriver) driver).executeScript("mobile: dragFromToForDuration", swipeParams);
+                Map<String, Object> params = new HashMap<>();
+                if (deviceType.startsWith("ios")) {
+                    params.put("fromX", startX);
+                    params.put("fromY", startY);
+                    params.put("toX", endX);
+                    params.put("toY", endY);
+                    params.put("duration", 1.0);
+                    driver.executeScript("mobile: dragFromToForDuration", params);
+                } else {
+                    params.put("startX", startX);
+                    params.put("startY", startY);
+                    params.put("endX", endX);
+                    params.put("endY", endY);
+                    driver.executeScript("mobile: swipeGesture", params);
+                }
                 response.put("status", "success");
                 System.out.println("Swipe successful for UDID: " + udid);
                 return ResponseEntity.ok(response);
             }
             response.put("status", "error");
-            response.put("message", "No session found");
-            System.out.println("No session found for UDID: " + udid);
+            response.put("message", "Session not found");
+            System.out.println("Session not found for UDID: " + udid);
             return ResponseEntity.status(404).body(response);
         } catch (Exception e) {
             response.put("status", "error");
@@ -122,90 +163,91 @@ public class DeviceController {
         }
     }
 
-    @PostMapping("/type")
-    public ResponseEntity<Map<String, String>> typeText(@RequestBody Map<String, String> request) {
-        String udid = request.get("udid");
-        String text = request.get("text");
-        System.out.println("Received type request for UDID: " + udid + " with text: " + text);
-        Map<String, String> response = new HashMap<>();
-        try {
-            AppiumDriver driver = appiumService.getDriver(udid);
-            if (driver != null) {
-                Map<String, Object> typeParams = new HashMap<>();
-                typeParams.put("value", text);
-                ((IOSDriver) driver).executeScript("mobile: type", typeParams);
-                response.put("status", "success");
-                System.out.println("Type successful for UDID: " + udid);
-                return ResponseEntity.ok(response);
-            }
-            response.put("status", "error");
-            response.put("message", "No session found");
-            System.out.println("No session found for UDID: " + udid);
-            return ResponseEntity.status(404).body(response);
-        } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            System.err.println("Type failed for UDID: " + udid + ". Error: " + e.getMessage());
-            return ResponseEntity.status(500).body(response);
-        }
-    }
-
     @PostMapping("/press_home")
     public ResponseEntity<Map<String, String>> pressHome(@RequestBody Map<String, String> request) {
         String udid = request.get("udid");
-        System.out.println("Received press home request for UDID: " + udid);
+        String deviceType = request.getOrDefault("deviceType", "ios-real");
+        System.out.println("Home button press request for UDID: " + udid);
         Map<String, String> response = new HashMap<>();
         try {
-            AppiumDriver driver = appiumService.getDriver(udid);
+            AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                driver.executeScript("mobile: pressButton", Map.of("name", "home"));
+                if (deviceType.startsWith("ios")) {
+                    driver.executeScript("mobile: pressButton", Map.of("name", "home"));
+                } else {
+                    driver.executeScript("mobile: pressKey", Map.of("keycode", 3));
+                }
                 response.put("status", "success");
                 System.out.println("Home button pressed successfully for UDID: " + udid);
                 return ResponseEntity.ok(response);
             }
             response.put("status", "error");
-            response.put("message", "No session found");
-            System.out.println("No session found for UDID: " + udid);
+            response.put("message", "Session not found");
+            System.out.println("Session not found for UDID: " + udid);
             return ResponseEntity.status(404).body(response);
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", e.getMessage());
-            System.err.println("Press home failed for UDID: " + udid + ". Error: " + e.getMessage());
+            System.err.println("Home button press failed for UDID: " + udid + ". Error: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
     }
-    @PostMapping("/long_press_home")
-    public ResponseEntity<Map<String, String>> longPressHome(@RequestBody Map<String, String> request) {
+
+    @PostMapping("/press_back")
+    public ResponseEntity<Map<String, String>> pressBack(@RequestBody Map<String, String> request) {
         String udid = request.get("udid");
-        System.out.println("Received long press home request for UDID: " + udid);
+        String deviceType = request.getOrDefault("deviceType", "ios-real");
+        System.out.println("Back button press request for UDID: " + udid);
         Map<String, String> response = new HashMap<>();
         try {
-            AppiumDriver driver = appiumService.getDriver(udid);
+            AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                // Долгое нажатие кнопки Home (например, для вызова Siri)
-                Map<String, Object> params = new HashMap<>();
-                params.put("name", "home");
-                params.put("duration", 2.0); // 2 секунды для долгого нажатия
-                ((IOSDriver) driver).executeScript("mobile: pressButton", params);
+                driver.executeScript("mobile: pressKey", Map.of("keycode", 4));
                 response.put("status", "success");
-                System.out.println("Home button long pressed successfully for UDID: " + udid);
+                System.out.println("Back button pressed successfully for UDID: " + udid);
                 return ResponseEntity.ok(response);
             }
             response.put("status", "error");
-            response.put("message", "No session found");
-            System.out.println("No session found for UDID: " + udid);
+            response.put("message", "Session not found");
+            System.out.println("Session not found for UDID: " + udid);
             return ResponseEntity.status(404).body(response);
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", e.getMessage());
-            System.err.println("Long press home failed for UDID: " + udid + ". Error: " + e.getMessage());
+            System.err.println("Back button press failed for UDID: " + udid + ". Error: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    @PostMapping("/press_menu")
+    public ResponseEntity<Map<String, String>> pressMenu(@RequestBody Map<String, String> request) {
+        String udid = request.get("udid");
+        String deviceType = request.getOrDefault("deviceType", "ios-real");
+        System.out.println("Menu button press request for UDID: " + udid);
+        Map<String, String> response = new HashMap<>();
+        try {
+            AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
+            if (driver != null) {
+                driver.executeScript("mobile: pressKey", Map.of("keycode", 187));
+                response.put("status", "success");
+                System.out.println("Menu button pressed successfully for UDID: " + udid);
+                return ResponseEntity.ok(response);
+            }
+            response.put("status", "error");
+            response.put("message", "Session not found");
+            System.out.println("Session not found for UDID: " + udid);
+            return ResponseEntity.status(404).body(response);
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            System.err.println("Menu button press failed for UDID: " + udid + ". Error: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
     }
 
     @GetMapping("/screenshot/{udid}")
     public ResponseEntity<byte[]> screenshot(@PathVariable String udid) {
-        System.out.println("Received screenshot request for UDID: " + udid);
+        System.out.println("Screenshot request for UDID: " + udid);
         try {
             AppiumDriver driver = appiumService.getDriver(udid);
             if (driver != null) {
@@ -216,7 +258,7 @@ public class DeviceController {
                         .header("Content-Type", "image/png")
                         .body(screenshotBytes);
             }
-            System.out.println("No session found for UDID: " + udid);
+            System.out.println("Session not found for UDID: " + udid);
             return ResponseEntity.status(404).body(null);
         } catch (Exception e) {
             System.err.println("Screenshot failed for UDID: " + udid + ". Error: " + e.getMessage());
@@ -226,7 +268,7 @@ public class DeviceController {
 
     @GetMapping("/screen_size/{udid}")
     public ResponseEntity<Map<String, Integer>> getScreenSize(@PathVariable String udid) {
-        System.out.println("Received screen size request for UDID: " + udid);
+        System.out.println("Screen size request for UDID: " + udid);
         try {
             Map<String, Integer> size = appiumService.getScreenSize(udid);
             if (size != null) {

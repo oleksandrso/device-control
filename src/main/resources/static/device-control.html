@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Control</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="header">
+    <button id="back-btn" onclick="goBack()"><img src="/img/back-icon.svg" alt="Back"> Back</button>
+    <h1>Device Control</h1>
+    <button id="theme-toggle">Toggle Theme</button>
+</div>
+<div class="phone-container">
+    <div class="screen-container">
+        <div id="loading" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <span>Loading...</span>
+        </div>
+        <img id="screen" src="" alt="Device Screen" onclick="tapOnImage(event)" onmousedown="startSwipe(event)" onmousemove="updateSwipe(event)" onmouseup="endSwipe(event)">
+    </div>
+    <div class="bottom-controls">
+        <button id="back-device-btn" class="nav-btn" style="display: none;"><img src="/img/back-device-icon.svg" alt="Back Device"></button>
+        <button id="home-btn" class="nav-btn" onclick="onHomePress(event)"><img src="/img/home-icon.svg" alt="Home"></button>
+        <button id="menu-btn" class="nav-btn" style="display: none;"><img src="/img/menu-icon.svg" alt="Menu"></button>
+    </div>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/utils.js"></script>
+<script src="/js/device-control.js"></script>
+<script src="/js/theme.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const deviceType = new URLSearchParams(window.location.search).get('type');
+        if (deviceType && deviceType.startsWith('android')) {
+            document.getElementById('back-device-btn').style.display = 'flex';
+            document.getElementById('menu-btn').style.display = 'flex';
+        }
+    });
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9309d11dedf2affb',t:'MTc0NDcwMzA1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
