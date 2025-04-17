@@ -8,7 +8,7 @@ import org.openqa.selenium.WebDriver;
 
 import javax.annotation.Nonnull;
 import java.net.URL;
-
+import java.net.ServerSocket;
 
 public class IOSLocalDriver implements WebDriverProvider {
 
@@ -28,12 +28,24 @@ public class IOSLocalDriver implements WebDriverProvider {
         desiredCapabilities.setCapability("deviceName", DEVICE_NAME);
         desiredCapabilities.setCapability("usePrebuiltWDA", true);
         desiredCapabilities.setCapability("noReset", true);
-        desiredCapabilities.setCapability("appium:newCommandTimeout", 600);
+        desiredCapabilities.setCapability("newCommandTimeout", 600);
+
+        // Динамическое выделение порта для WDA
+        int wdaPort = findFreePort();
+        desiredCapabilities.setCapability("wdaLocalPort", wdaPort);
 
         try {
             return new IOSDriver(new URL(APPIUM_SERVER_URL), desiredCapabilities);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create iOS driver: " + e.getMessage(), e);
+        }
+    }
+
+    private int findFreePort() {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to find free port: " + e.getMessage(), e);
         }
     }
 }

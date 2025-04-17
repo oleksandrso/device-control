@@ -1,18 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error</title>
-    <link rel="stylesheet" href="/css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>MobileTest Farm - Error</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#4f86f7',
+                            dark: '#2563eb'
+                        },
+                        secondary: {
+                            light: '#2ecc71',
+                            dark: '#059669'
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        light: {
+                            100: '#f9fafb',
+                            200: '#f3f4f6',
+                            300: '#e5e7eb'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .coming-soon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            font-size: 24px;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+    </style>
 </head>
-<body>
-<div class="header">
-    <h1>Error</h1>
-    <button id="theme-toggle">Toggle Theme</button>
+<body class="bg-light-100 text-gray-800 dark:bg-dark-900 dark:text-gray-200 min-h-screen transition-colors duration-300">
+<!-- Theme Toggle -->
+<div class="fixed top-4 right-4 z-50">
+    <button id="themeToggle" class="p-2 rounded-full bg-white dark:bg-dark-800 shadow-lg">
+        <i class="fas fa-moon dark:hidden"></i>
+        <i class="fas fa-sun hidden dark:inline"></i>
+    </button>
 </div>
-<p>Something went wrong. <a href="/">Return to Home</a></p>
-<script src="/js/theme.js"></script>
+
+<div class="flex h-screen justify-center items-center">
+    <div class="bg-white dark:bg-dark-800 p-6 rounded-lg shadow text-center">
+        <h2 class="text-2xl font-bold mb-4">Error</h2>
+        <p class="text-gray-500 dark:text-gray-400">Something went wrong. <a href="/" class="text-primary-light dark:text-primary-dark hover:underline">Return to Home</a></p>
+    </div>
+</div>
+
+<script>
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+
+    themeToggle.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        html.classList.add('dark');
+    } else {
+        html.classList.remove('dark');
+    }
+</script>
 </body>
 </html>

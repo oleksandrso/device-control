@@ -33,7 +33,6 @@ public class AppiumService {
             System.out.println("Capabilities: " + driver.getCapabilities().asMap());
         } catch (Exception e) {
             System.err.println("Failed to start session for UDID: " + udid + ". Error: " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
     }
@@ -96,20 +95,21 @@ public class AppiumService {
 
     public Map<String, Integer> getScreenSize(String udid) {
         AppiumDriver driver = getDriver(udid);
-        if (driver != null) {
-            try {
-                Map<String, Integer> size = new HashMap<>();
-                org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
-                size.put("width", screenSize.getWidth());
-                size.put("height", screenSize.getHeight());
-                System.out.println("Screen size for UDID " + udid + ": " + size);
-                return size;
-            } catch (Exception e) {
-                System.err.println("Failed to get screen size for UDID: " + udid + ". Error: " + e.getMessage());
-                return null;
-            }
+        if (driver == null) {
+            System.out.println("No driver found for UDID: " + udid);
+            return null;
         }
-        System.out.println("No driver found for UDID: " + udid);
-        return null;
+        try {
+            driver.getSessionId(); // Проверка активности сессии
+            Map<String, Integer> size = new HashMap<>();
+            org.openqa.selenium.Dimension screenSize = driver.manage().window().getSize();
+            size.put("width", screenSize.getWidth());
+            size.put("height", screenSize.getHeight());
+            System.out.println("Screen size for UDID " + udid + ": " + size);
+            return size;
+        } catch (Exception e) {
+            System.err.println("Failed to get screen size for UDID: " + udid + ". Error: " + e.getMessage());
+            return null;
+        }
     }
 }

@@ -1,13 +1,16 @@
 package com.devicecontrol.controller;
 
 import com.devicecontrol.service.AppiumService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.OutputType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,26 +23,15 @@ public class DeviceController {
 
     @GetMapping("/devices")
     public ResponseEntity<Map<String, Map<String, Map<String, String>>>> getDevices() {
-        Map<String, Map<String, Map<String, String>>> devices = new HashMap<>();
-
-        Map<String, Map<String, String>> iosDevices = new HashMap<>();
-        Map<String, String> iosReal = new HashMap<>();
-        iosReal.put("86c1c3528327635aa5bcf664d5dd4b51cc7af0a3", "iPhone 7s");
-        iosDevices.put("real", iosReal);
-        Map<String, String> iosSimulator = new HashMap<>();
-        iosSimulator.put("A126EF10-7E87-4F00-9A39-F9600EA57FDA", "iPhone XS Simulator");
-        iosDevices.put("simulator", iosSimulator);
-
-        Map<String, Map<String, String>> androidDevices = new HashMap<>();
-        Map<String, String> androidReal = new HashMap<>();
-        androidReal.put("PJLZUSTGEQUSSSOR", "Android Real Device");
-        androidDevices.put("real", androidReal);
-        androidDevices.put("emulator", new HashMap<>());
-
-        devices.put("ios", iosDevices);
-        devices.put("android", androidDevices);
-
-        return ResponseEntity.ok(devices);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            InputStream inputStream = new ClassPathResource("static/devices.json").getInputStream();
+            Map<String, Map<String, Map<String, String>>> devices = mapper.readValue(inputStream, Map.class);
+            return ResponseEntity.ok(devices);
+        } catch (Exception e) {
+            System.err.println("Failed to read devices.json: " + e.getMessage());
+            return ResponseEntity.status(500).body(new HashMap<>());
+        }
     }
 
     @PostMapping("/start_session")
@@ -115,50 +107,6 @@ public class DeviceController {
             response.put("status", "error");
             response.put("message", e.getMessage());
             System.err.println("Tap failed for UDID: " + udid + ". Error: " + e.getMessage());
-            return ResponseEntity.status(500).body(response);
-        }
-    }
-
-    @PostMapping("/swipe")
-    public ResponseEntity<Map<String, String>> swipe(@RequestBody Map<String, Object> request) {
-        String udid = (String) request.get("udid");
-        int startX = (int) request.get("start_x");
-        int startY = (int) request.get("start_y");
-        int endX = (int) request.get("end_x");
-        int endY = (int) request.get("end_y");
-        String deviceType = (String) request.getOrDefault("deviceType", "ios-real");
-        System.out.println("Swipe request for UDID: " + udid + " from (" + startX + ", " + startY + ") to (" + endX + ", " + endY + ")");
-        Map<String, String> response = new HashMap<>();
-        try {
-            AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
-            if (driver != null) {
-                Map<String, Object> params = new HashMap<>();
-                if (deviceType.startsWith("ios")) {
-                    params.put("fromX", startX);
-                    params.put("fromY", startY);
-                    params.put("toX", endX);
-                    params.put("toY", endY);
-                    params.put("duration", 1.0);
-                    driver.executeScript("mobile: dragFromToForDuration", params);
-                } else {
-                    params.put("startX", startX);
-                    params.put("startY", startY);
-                    params.put("endX", endX);
-                    params.put("endY", endY);
-                    driver.executeScript("mobile: swipeGesture", params);
-                }
-                response.put("status", "success");
-                System.out.println("Swipe successful for UDID: " + udid);
-                return ResponseEntity.ok(response);
-            }
-            response.put("status", "error");
-            response.put("message", "Session not found");
-            System.out.println("Session not found for UDID: " + udid);
-            return ResponseEntity.status(404).body(response);
-        } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            System.err.println("Swipe failed for UDID: " + udid + ". Error: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
     }

@@ -1,0 +1,18 @@
+{
+  "ios": {
+    "real": {
+      "86c1c3528327635aa5bcf664d5dd4b51cc7af0a3": "admin's iPhone"
+    },
+    "simulator": {
+      "A126EF10-7E87-4F00-9A39-F9600EA57FDA": "iPhone Xs"
+    }
+  },
+  "android": {
+    "real": {
+      "PJLZUSTGEQUSSSOR": "Android Device"
+    },
+    "emulator": {
+      "emulator-5554": "Android Emulator"
+    }
+  }
+}

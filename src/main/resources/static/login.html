@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobileTest Farm - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#4f86f7',
+                            dark: '#2563eb'
+                        },
+                        secondary: {
+                            light: '#2ecc71',
+                            dark: '#059669'
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        light: {
+                            100: '#f9fafb',
+                            200: '#f3f4f6',
+                            300: '#e5e7eb'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .bg-light-100 {
+            background-color: #f5f5f5;
+        }
+        .bg-white {
+            background-color: #fafafa;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-light-100 text-gray-800 dark:bg-dark-900 dark:text-gray-200 min-h-screen transition-colors duration-300 flex items-center justify-center">
+<div class="w-full max-w-md p-6 bg-white dark:bg-dark-800 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold flex items-center">
+            <i class="fas fa-mobile-screen mr-2 text-primary-light dark:text-primary-dark"></i>
+            MobileTest Farm
+        </h1>
+        <button id="themeToggle" class="p-2 rounded-full bg-white dark:bg-dark-800 shadow-lg">
+            <i class="fas fa-moon dark:hidden"></i>
+            <i class="fas fa-sun hidden dark:inline"></i>
+        </button>
+    </div>
+    <h2 class="text-xl font-bold mb-4">Login</h2>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+            <input type="text" id="username" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark" placeholder="Enter your username">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+            <input type="password" id="password" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark" placeholder="Enter your password">
+        </div>
+        <div id="errorMessage" class="error-message">Invalid username or password</div>
+        <button id="loginBtn" class="w-full bg-primary-light dark:bg-primary-dark text-white py-2 rounded-md text-sm hover:bg-opacity-90 transition-opacity">Login</button>
+    </div>
+</div>
+
+<script>
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+
+    themeToggle.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        html.classList.add('dark');
+    } else {
+        html.classList.remove('dark');
+    }
+
+    // Login Functionality (Simple Simulation)
+    const loginBtn = document.getElementById('loginBtn');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const errorMessage = document.getElementById('errorMessage');
+
+    loginBtn.addEventListener('click', () => {
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+
+        if (username === 'admin' && password === 'password') {
+            window.location.href = 'index.html';
+        } else {
+            errorMessage.style.display = 'block';
+        }
+    });
+
+
+    usernameInput.addEventListener('input', () => {
+        errorMessage.style.display = 'none';
+    });
+    passwordInput.addEventListener('input', () => {
+        errorMessage.style.display = 'none';
+    });
+</script>
+</body>
+</html>

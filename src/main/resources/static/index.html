@@ -1,98 +1,1287 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Selection</title>
-    <link rel="stylesheet" href="/css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>MobileTest Farm - Device Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.4.12/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#4f86f7',
+                            dark: '#2563eb'
+                        },
+                        secondary: {
+                            light: '#2ecc71',
+                            dark: '#059669'
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        light: {
+                            100: '#f9fafb',
+                            200: '#f3f4f6',
+                            300: '#e5e7eb'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar-item.active {
+            background-color: rgba(79, 134, 247, 0.1);
+            border-left: 3px solid #4f86f7;
+        }
+        .dark .sidebar-item.active {
+            background-color: rgba(37, 99, 235, 0.2);
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-indicator.online {
+            background-color: #2ecc71;
+        }
+        .status-indicator.offline {
+            background-color: #e74c3c;
+        }
+        .device-screen {
+            background-color: #000;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .device-screen img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .device-controls {
+            padding: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .code-editor {
+            font-family: 'Courier New', monospace;
+            height: 400px;
+            width: 100%;
+        }
+        .test-result-item {
+            transition: all 0.2s ease;
+        }
+        .test-result-item:hover {
+            background-color: rgba(79, 134, 247, 0.05);
+        }
+        .dark .test-result-item:hover {
+            background-color: rgba(37, 99, 235, 0.1);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .device-list-item.active {
+            background-color: rgba(79, 134, 247, 0.1);
+            border-left: 3px solid #4f86f7;
+        }
+        .dark .device-list-item.active {
+            background-color: rgba(37, 99, 235, 0.2);
+        }
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .coming-soon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            font-size: 24px;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            z-index: 15;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4f86f7;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #themeToggle {
+            z-index: 1000;
+        }
+        .error-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            display: none;
+        }
+        .session-ended {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        .report-container {
+            margin-bottom: 0.5rem;
+        }
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            background-color: #d1d5db;
+            dark:bg-gray-800;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        .report-header:hover {
+            background-color: #b0b7c0;
+            dark:bg-gray-700;
+        }
+        .report-iframe {
+            display: none;
+            width: 100%;
+            height: 600px;
+            border: none;
+            background-color: #ffffff;
+            dark:bg-gray-800;
+        }
+        .report-iframe.active {
+            display: block;
+        }
+        .test-suite-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        .test-suite-item:hover {
+            background-color: #e5e7eb;
+            dark:bg-gray-700;
+        }
+        .test-suite-item.active {
+            background-color: #d1d5db;
+            dark:bg-gray-600;
+        }
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e5e7eb;
+            dark:bg-gray-600;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease-in-out;
+        }
+        .progress-bar-fill.passed {
+            background-color: #2ecc71;
+        }
+        .progress-bar-fill.failed {
+            background-color: #e74c3c;
+        }
+        .bg-light-100 {
+            background-color: #f5f5f5;
+        }
+        .bg-white {
+            background-color: #fafafa;
+        }
+    </style>
 </head>
-<body>
-<div class="header">
-    <h1>Device Control</h1>
-    <button id="theme-toggle">Toggle Theme</button>
-</div>
-<div class="device-options">
-    <div class="dropdown">
-        <label for="ios-devices">iOS Devices</label>
-        <select id="ios-devices" onchange="selectDevice(this.value)">
-            <option value="" disabled selected>Select iOS Device</option>
-        </select>
+<body class="bg-light-100 text-gray-800 dark:bg-dark-900 dark:text-gray-200 min-h-screen transition-colors duration-300">
+<!-- Main Layout -->
+<div class="flex h-screen">
+    <!-- Sidebar -->
+    <div class="w-64 bg-white dark:bg-dark-800 shadow-md flex flex-col">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h1 class="text-xl font-bold flex items-center">
+                <i class="fas fa-mobile-screen mr-2 text-primary-light dark:text-primary-dark"></i>
+                MobileTest Farm
+            </h1>
+        </div>
+        <div class="flex-1 overflow-y-auto">
+            <nav class="p-2">
+                <div class="mb-4 px-2">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">MAIN</h3>
+                </div>
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-item active flex items-center px-3 py-2 text-sm font-medium rounded-md" data-tab="device-control">
+                            <i class="fas fa-mobile-screen-button mr-3 text-gray-500 dark:text-gray-400"></i>
+                            Device Control
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-item flex items-center px-3 py-2 text-sm font-medium rounded-md" data-tab="test-editor">
+                            <i class="fas fa-code mr-3 text-gray-500 dark:text-gray-400"></i>
+                            Test Editor
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-item flex items-center px-3 py-2 text-sm font-medium rounded-md" data-tab="test-results">
+                            <i class="fas fa-chart-bar mr-3 text-gray-500 dark:text-gray-400"></i>
+                            Test Results
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-item flex items-center px-3 py-2 text-sm font-medium rounded-md" data-tab="ai-tester">
+                            <i class="fas fa-robot mr-3 text-gray-500 dark:text-gray-400"></i>
+                            AI Tester
+                        </a>
+                    </li>
+                </ul>
+                <div class="mt-8 mb-4 px-2">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">SETTINGS</h3>
+                </div>
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-item flex items-center px-3 py-2 text-sm font-medium rounded-md" data-tab="appium-settings">
+                            <i class="fas fa-cog mr-3 text-gray-500 dark:text-gray-400"></i>
+                            Appium Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-item flex items-center px-3 py-2 text-sm font-medium rounded-md" data-tab="user-profile">
+                            <i class="fas fa-user mr-3 text-gray-500 dark:text-gray-400"></i>
+                            User Profile
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <img src="https://ui-avatars.com/api/?name=User&background=4f86f7&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">User</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Guest</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="themeToggle" class="p-2 rounded-full bg-white dark:bg-dark-800 shadow-lg">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:inline"></i>
+                    </button>
+                    <button id="logoutBtn" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="dropdown">
-        <label for="android-devices">Android Devices</label>
-        <select id="android-devices" onchange="selectDevice(this.value)">
-            <option value="" disabled selected>Select Android Device</option>
-        </select>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-auto">
+        <!-- Device Control Tab -->
+        <div id="device-control" class="tab-content p-6 active">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Device Control</h2>
+                <div class="flex items-center space-x-2">
+                    <div class="relative">
+                        <select id="deviceFilter" class="appearance-none bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 pl-3 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark">
+                            <option value="all">All Devices</option>
+                            <option value="android">Android</option>
+                            <option value="ios">iOS</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                    <button id="sessionToggle" class="bg-primary-light dark:bg-primary-dark text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-opacity-90 transition-opacity" style="display: none;">
+                        Start Session
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Device List -->
+                <div class="w-full lg:w-1/3">
+                    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="font-medium">Available Devices</h3>
+                        </div>
+                        <div class="divide-y divide-gray-200 dark:divide-gray-700 max-h-[600px] overflow-y-auto" id="deviceList">
+                            <!-- Devices will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Selected Device View -->
+                <div class="w-full lg:w-2/3">
+                    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center" id="deviceHeader">
+                            <div>
+                                <span class="status-indicator offline"></span>
+                                <span class="font-medium">No Device Selected</span>
+                            </div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                <span>Please select a device</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-center mb-6 relative">
+                                <div class="device-screen w-full max-w-md h-96 bg-gray-800 rounded-lg relative">
+                                    <div id="loading" class="loading-overlay" style="display: none;">
+                                        <div class="spinner"></div>
+                                        <span>Loading...</span>
+                                    </div>
+                                    <img id="screen" src="" alt="Device Screen" style="display: none;">
+                                    <div id="noDevice" class="absolute inset-0 flex items-center justify-center text-gray-400">
+                                        <i class="fas fa-mobile-screen text-6xl"></i>
+                                    </div>
+                                    <div id="sessionEnded" class="session-ended" style="display: none;">
+                                        Session Ended
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="device-controls" id="deviceControls" style="display: none;">
+                                <button id="backBtn" class="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full">
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button id="homeBtn" class="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full">
+                                    <i class="fas fa-home"></i>
+                                </button>
+                                <button id="menuBtn" class="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full">
+                                    <i class="fas fa-bars"></i>
+                                </button>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mt-4" id="deviceActions" style="display: none;">
+                                <h4 class="font-medium mb-2">App Installation</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="file-upload">
+                                        <button class="w-full bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 py-2 px-3 rounded text-sm">
+                                            <i class="fas fa-upload mr-2"></i> Upload APK/IPA
+                                        </button>
+                                        <input type="file" id="appUpload" accept=".apk,.ipa">
+                                    </div>
+                                    <button class="bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 py-2 px-3 rounded text-sm" id="installFromStore">
+                                        <i class="fas fa-store mr-2"></i> Install from Store
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="storeInstallModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div class="bg-white dark:bg-dark-800 rounded-lg p-6 w-full max-w-md">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-medium">Install from App Store</h3>
+                                        <button id="closeStoreModal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">App Name</label>
+                                        <input type="text" id="appName" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark" placeholder="e.g. com.example.myapp">
+                                    </div>
+                                    <div class="flex justify-end space-x-2">
+                                        <button id="cancelStoreInstall" class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                                            Cancel
+                                        </button>
+                                        <button id="confirmStoreInstall" class="px-4 py-2 text-sm font-medium rounded-md bg-primary-light dark:bg-primary-dark text-white hover:bg-opacity-90">
+                                            Install
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Editor Tab -->
+        <div id="test-editor" class="tab-content p-6">
+            <div class="flex flex-col lg:flex-row gap-6 h-full">
+                <!-- Code Editor -->
+                <div class="w-full lg:w-2/3">
+                    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <select class="appearance-none bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark">
+                                    <option>JavaScript</option>
+                                    <option>Python</option>
+                                </select>
+                                <input type="text" value="test_login.js" class="bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark" readonly>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-1 rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-600">Save</button>
+                                <button class="bg-primary-light dark:bg-primary-dark text-white px-3 py-1 rounded-md text-sm hover:bg-opacity-90">Run</button>
+                                <button class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div id="codeEditor" class="code-editor"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Test Suites and Configuration -->
+                <div class="w-full lg:w-1/3 flex flex-col gap-6">
+                    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="font-medium">Test Suites</h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="test-suite-item active">
+                                <p class="font-medium">Login Tests</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">5 test cases</p>
+                            </div>
+                            <div class="test-suite-item">
+                                <p class="font-medium">Payment Tests</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">8 test cases</p>
+                            </div>
+                            <div class="test-suite-item">
+                                <p class="font-medium">Profile Tests</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">3 test cases</p>
+                            </div>
+                            <button class="w-full mt-2 bg-primary-light dark:bg-primary-dark text-white py-2 rounded-md text-sm hover:bg-opacity-90">+ New Test Suite</button>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="font-medium">Test Configuration</h3>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Device</label>
+                                <select class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark">
+                                    <option>Pixel 4 (Android 11)</option>
+                                    <option>iPhone 12 (iOS 15.4)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">App Package</label>
+                                <input type="text" value="com.example.myapp" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Appium Server</label>
+                                <input type="text" value="http://192.168.1.5:4723" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary-light dark:focus:ring-primary-dark">
+                            </div>
+                            <button class="w-full bg-primary-light dark:bg-primary-dark text-white py-2 rounded-md text-sm hover:bg-opacity-90">Update Configuration</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results Tab -->
+        <div id="test-results" class="tab-content p-6">
+            <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold">Test Results</h2>
+                </div>
+                <div class="p-6">
+                    <!-- Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Tests</p>
+                            <p class="text-2xl font-bold">1,248</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Passed</p>
+                            <p class="text-2xl font-bold text-green-500">1,148</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Failed</p>
+                            <p class="text-2xl font-bold text-red-500">48</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Success Rate</p>
+                            <p class="text-2xl font-bold">92%</p>
+                        </div>
+                    </div>
+                    <!-- Allure Reports -->
+                    <div class="report-container">
+                        <div class="report-header" data-report="report1">
+                            <h3 class="text-lg font-medium">Login Flow Test Results</h3>
+                            <div>
+                                <button class="open-new-window mr-2 text-primary-light dark:text-primary-dark" data-url="/reports/allure-report-1/index.html">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                                <button class="toggle-report">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <iframe src="/reports/allure-report-1/index.html" class="report-iframe" id="report1"></iframe>
+                    </div>
+                    <div class="report-container">
+                        <div class="report-header" data-report="report2">
+                            <h3 class="text-lg font-medium">Payment Integration Test Results</h3>
+                            <div>
+                                <button class="open-new-window mr-2 text-primary-light dark:text-primary-dark" data-url="/reports/allure-report-2/index.html">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                                <button class="toggle-report">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <iframe src="/reports/allure-report-2/index.html" class="report-iframe" id="report2"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Tester Tab -->
+        <div id="ai-tester" class="tab-content p-6">
+            <div class="coming-soon">
+                <div class="text-center">
+                    <i class="fas fa-robot text-5xl mb-4 text-gray-400"></i>
+                    <h2 class="text-3xl font-bold mb-2">AI Tester</h2>
+                    <p class="text-xl">Coming Soon</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appium Settings Tab -->
+        <div id="appium-settings" class="tab-content p-6">
+            <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold">Appium Server Settings</h2>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Server Host</label>
+                            <input type="text" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm" value="192.168.0.118" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Server Port</label>
+                            <input type="text" class="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm" value="4723" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Profile Tab -->
+        <div id="user-profile" class="tab-content p-6">
+            <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-xl font-bold">User Profile</h2>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <img src="https://ui-avatars.com/api/?name=User&background=4f86f7&color=fff" alt="User" class="w-16 h-16 rounded-full">
+                        <div class="ml-4">
+                            <h3 class="text-lg font-medium">Guest User</h3>
+                            <p class="text-gray-500 dark:text-gray-400">Guest</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-<script src="/js/utils.js"></script>
-<script src="/js/theme.js"></script>
+
+<!-- Error Notification -->
+<div id="errorNotification" class="error-notification">
+    <span id="errorMessage"></span>
+</div>
+
 <script>
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+
+    themeToggle.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        updateEditorTheme();
+    });
+
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        html.classList.add('dark');
+    } else {
+        html.classList.remove('dark');
+    }
+
+    // Error Notification
+    function showError(message) {
+        const notification = document.getElementById('errorNotification');
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.textContent = message;
+        notification.style.display = 'block';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 5000);
+    }
+
+    // Tab Switching
+    let currentUdid = null;
+    let currentDeviceType = null;
+    let deviceScreenSize = null;
+    let sessionActive = false;
+    let refreshInterval = null;
+    let editor;
+
+    function updateEditorTheme() {
+        if (html.classList.contains('dark')) {
+            editor.setTheme("ace/theme/tomorrow_night");
+        } else {
+            editor.setTheme("ace/theme/chrome");
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarItems = document.querySelectorAll('.sidebar-item');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabContents.forEach(tab => {
+            if (!tab.classList.contains('active')) {
+                tab.style.display = 'none';
+            }
+        });
+
+        sidebarItems.forEach(item => {
+            item.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const tabId = this.getAttribute('data-tab');
+                sidebarItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                tabContents.forEach(tab => {
+                    tab.style.display = 'none';
+                    tab.classList.remove('active');
+                });
+                const activeTab = document.getElementById(tabId);
+                if (activeTab) {
+                    activeTab.style.display = 'block';
+                    activeTab.classList.add('active');
+                }
+                if (tabId !== 'device-control' && sessionActive) {
+                    await stopSession();
+                }
+            });
+        });
+
+        // Initialize Code Editor
+        editor = ace.edit("codeEditor");
+        updateEditorTheme();
+        editor.session.setMode("ace/mode/javascript");
+        editor.setValue(`// Sample Appium Test in JavaScript\nconst { Builder, By, until } = require('appium');\n\ndescribe('Login Test', () => {\n    let driver;\n\n    before(async () => {\n        driver = await new Builder()\n            .usingServer('http://192.168.1.5:4723')\n            .withCapabilities({\n                platformName: 'Android',\n                deviceName: 'Pixel 4',\n                app: '/apps/com.example.myapp.apk'\n            })\n            .build();\n    });\n});`);
+
+        // Toggle Report Visibility
+        const toggleButtons = document.querySelectorAll('.toggle-report');
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const header = button.closest('.report-header');
+                const reportId = header.dataset.report;
+                const iframe = document.getElementById(reportId);
+                const icon = button.querySelector('i');
+                if (iframe.classList.contains('active')) {
+                    iframe.classList.remove('active');
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-right');
+                } else {
+                    iframe.classList.add('active');
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-down');
+                }
+            });
+        });
+
+        // Open Report in New Window
+        const openNewWindowButtons = document.querySelectorAll('.open-new-window');
+        openNewWindowButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const url = button.dataset.url;
+                window.open(url, '_blank');
+            });
+        });
+
+        // Toggle Report Header
+        const reportHeaders = document.querySelectorAll('.report-header');
+        reportHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const toggleButton = header.querySelector('.toggle-report');
+                toggleButton.click();
+            });
+        });
+    });
+
+    // Device List Population
     document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/devices')
             .then(response => response.json())
             .then(data => {
-                const iosSelect = document.getElementById('ios-devices');
-                const androidSelect = document.getElementById('android-devices');
+                const deviceList = document.getElementById('deviceList');
+                deviceList.innerHTML = '';
 
                 // iOS Devices
                 if (data.ios.real && Object.keys(data.ios.real).length > 0) {
-                    const iosRealGroup = document.createElement('optgroup');
-                    iosRealGroup.label = 'Real Devices';
                     Object.entries(data.ios.real).forEach(([udid, name]) => {
-                        const option = document.createElement('option');
-                        option.value = `ios-real|${udid}`;
-                        option.textContent = name;
-                        iosRealGroup.appendChild(option);
+                        const div = document.createElement('div');
+                        div.className = 'device-list-item p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer';
+                        div.dataset.device = `ios-real|${udid}`;
+                        div.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="status-indicator online"></span>
+                                        <span class="font-medium">${name}</span>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-full">iOS</span>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <div>UDID: ${udid}</div>
+                                </div>
+                            `;
+                        div.addEventListener('click', () => selectDevice(`ios-real|${udid}`));
+                        deviceList.appendChild(div);
                     });
-                    iosSelect.appendChild(iosRealGroup);
                 }
                 if (data.ios.simulator && Object.keys(data.ios.simulator).length > 0) {
-                    const iosSimGroup = document.createElement('optgroup');
-                    iosSimGroup.label = 'Simulators';
                     Object.entries(data.ios.simulator).forEach(([udid, name]) => {
-                        const option = document.createElement('option');
-                        option.value = `ios-simulator|${udid}`;
-                        option.textContent = name;
-                        iosSimGroup.appendChild(option);
+                        const div = document.createElement('div');
+                        div.className = 'device-list-item p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer';
+                        div.dataset.device = `ios-simulator|${udid}`;
+                        div.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="status-indicator online"></span>
+                                        <span class="font-medium">${name}</span>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-full">iOS Simulator</span>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <div>UDID: ${udid}</div>
+                                </div>
+                            `;
+                        div.addEventListener('click', () => selectDevice(`ios-simulator|${udid}`));
+                        deviceList.appendChild(div);
                     });
-                    iosSelect.appendChild(iosSimGroup);
                 }
 
                 // Android Devices
                 if (data.android.real && Object.keys(data.android.real).length > 0) {
-                    const androidRealGroup = document.createElement('optgroup');
-                    androidRealGroup.label = 'Real Devices';
                     Object.entries(data.android.real).forEach(([udid, name]) => {
-                        const option = document.createElement('option');
-                        option.value = `android-real|${udid}`;
-                        option.textContent = name;
-                        androidRealGroup.appendChild(option);
+                        const div = document.createElement('div');
+                        div.className = 'device-list-item p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer';
+                        div.dataset.device = `android-real|${udid}`;
+                        div.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="status-indicator online"></span>
+                                        <span class="font-medium">${name}</span>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-full">Android</span>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <div>UDID: ${udid}</div>
+                                </div>
+                            `;
+                        div.addEventListener('click', () => selectDevice(`android-real|${udid}`));
+                        deviceList.appendChild(div);
                     });
-                    androidSelect.appendChild(androidRealGroup);
                 }
                 if (data.android.emulator && Object.keys(data.android.emulator).length > 0) {
-                    const androidEmuGroup = document.createElement('optgroup');
-                    androidEmuGroup.label = 'Emulators';
                     Object.entries(data.android.emulator).forEach(([udid, name]) => {
-                        const option = document.createElement('option');
-                        option.value = `android-emulator|${udid}`;
-                        option.textContent = name;
-                        androidEmuGroup.appendChild(option);
+                        const div = document.createElement('div');
+                        div.className = 'device-list-item p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer';
+                        div.dataset.device = `android-emulator|${udid}`;
+                        div.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="status-indicator online"></span>
+                                        <span class="font-medium">${name}</span>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-full">Android Emulator</span>
+                                </div>
+                                <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <div>UDID: ${udid}</div>
+                                </div>
+                            `;
+                        div.addEventListener('click', () => selectDevice(`android-emulator|${udid}`));
+                        deviceList.appendChild(div);
                     });
-                    androidSelect.appendChild(androidEmuGroup);
                 }
             })
-            .catch(error => console.error("Failed to load devices:", error));
+            .catch(error => {
+                console.error("Failed to load devices:", error);
+                showError("Failed to load devices. Please try again.");
+            });
     });
 
-    function selectDevice(value) {
+    // Device Filter
+    document.addEventListener('DOMContentLoaded', function() {
+        const deviceFilter = document.getElementById('deviceFilter');
+        deviceFilter.addEventListener('change', function() {
+            const filterValue = this.value;
+            const deviceListItems = document.querySelectorAll('.device-list-item');
+            deviceListItems.forEach(item => {
+                const deviceType = item.dataset.device.split('|')[0];
+                if (filterValue === 'all' ||
+                    (filterValue === 'android' && deviceType.includes('android')) ||
+                    (filterValue === 'ios' && deviceType.includes('ios'))) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Device Control Functions
+    async function startSession(udid, deviceType) {
+        try {
+            const response = await fetch('/api/start_session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ udid, deviceType })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to start session");
+            }
+            const data = await response.json();
+            if (data.status !== "success") throw new Error(data.message || "Failed to start session");
+            return data;
+        } catch (error) {
+            console.error("Failed to start session:", error);
+            throw error;
+        }
+    }
+
+    async function stopSession() {
+        if (!currentUdid) return;
+        try {
+            const response = await fetch('/api/stop_session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ udid: currentUdid })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to stop session");
+            }
+            const data = await response.json();
+            if (data.status !== "success") throw new Error(data.message || "Failed to stop session");
+            sessionActive = false;
+            clearInterval(refreshInterval);
+        } catch (error) {
+            console.error("Failed to stop session:", error);
+        }
+    }
+
+    async function fetchScreenSize(udid) {
+        try {
+            const response = await fetch(`/api/screen_size/${udid}`);
+            if (!response.ok) throw new Error("Failed to fetch screen size");
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching screen size:", error);
+            throw error;
+        }
+    }
+
+    async function tap(udid, x, y, deviceType) {
+        try {
+            console.log(`Sending tap request: UDID=${udid}, x=${x}, y=${y}, deviceType=${deviceType}`);
+            const response = await fetch('/api/tap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ udid, x, y, deviceType })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Tap failed");
+            }
+            const data = await response.json();
+            if (data.status !== "success") throw new Error(data.message || "Tap failed");
+            return data;
+        } catch (error) {
+            console.error("Tap failed:", error);
+            throw error;
+        }
+    }
+
+    async function pressHome(udid, deviceType) {
+        try {
+            const response = await fetch('/api/press_home', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ udid, deviceType })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Home button press failed");
+            }
+            const data = await response.json();
+            if (data.status !== "success") throw new Error(data.message || "Home button press failed");
+            return data;
+        } catch (error) {
+            console.error("Home button press failed:", error);
+            throw error;
+        }
+    }
+
+    async function pressBack(udid, deviceType) {
+        try {
+            const response = await fetch('/api/press_back', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ udid, deviceType })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Back button press failed");
+            }
+            const data = await response.json();
+            if (data.status !== "success") throw new Error(data.message || "Back button press failed");
+            return data;
+        } catch (error) {
+            console.error("Back button press failed:", error);
+            throw error;
+        }
+    }
+
+    async function pressMenu(udid, deviceType) {
+        try {
+            const response = await fetch('/api/press_menu', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ udid, deviceType })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Menu button press failed");
+            }
+            const data = await response.json();
+            if (data.status !== "success") throw new Error(data.message || "Menu button press failed");
+            return data;
+        } catch (error) {
+            console.error("Menu button press failed:", error);
+            throw error;
+        }
+    }
+
+    function refreshScreenshot(udid) {
+        const screen = document.getElementById('screen');
+        const url = `/api/screenshot/${udid}?t=${new Date().getTime()}`;
+        screen.src = url;
+        screen.onerror = async () => {
+            console.error("Screenshot load failed");
+            sessionActive = false;
+            await stopSession();
+            updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+            showError("Session lost. Please restart the session.");
+        };
+    }
+
+    function setRefreshInterval(intervalMs) {
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(() => {
+            if (sessionActive && currentUdid) {
+                refreshScreenshot(currentUdid);
+            } else {
+                clearInterval(refreshInterval);
+            }
+        }, intervalMs);
+    }
+
+    async function tapOnImage(event) {
+        if (!sessionActive || !deviceScreenSize) {
+            console.error("No active session or device screen size not available");
+            return;
+        }
+        const img = event.target;
+        const rect = img.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+
+        const scaledX = clickX * (imgWidth / displayWidth);
+        const scaledY = clickY * (imgHeight / displayHeight);
+
+        if (scaledX < 0 || scaledX > imgWidth || scaledY < 0 || scaledY > imgHeight) {
+            console.warn(`Click outside image bounds: (${scaledX}, ${scaledY})`);
+            return;
+        }
+
+        const deviceX = Math.round((scaledX / imgWidth) * deviceScreenSize.width);
+        const deviceY = Math.round((scaledY / imgHeight) * deviceScreenSize.height);
+
+        console.log(`Image click: (${clickX}, ${clickY}), Display size: (${displayWidth}, ${displayHeight})`);
+        console.log(`Image natural size: (${imgWidth}, ${imgHeight})`);
+        console.log(`Scaled click: (${scaledX}, ${scaledY})`);
+        console.log(`Device tap: (${deviceX}, ${deviceY}), Device size: (${deviceScreenSize.width}, ${deviceScreenSize.height})`);
+
+        try {
+            await tap(currentUdid, deviceX, deviceY, currentDeviceType);
+            setRefreshInterval(700);
+            setTimeout(() => setRefreshInterval(10000), 30000);
+        } catch (error) {
+            sessionActive = false;
+            await stopSession();
+            updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+            showError("Action failed: Session lost.");
+        }
+    }
+
+    function showLoading() {
+        document.getElementById('loading').style.display = 'flex';
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    function updateDeviceView(device) {
+        const deviceHeader = document.getElementById('deviceHeader');
+        const screen = document.getElementById('screen');
+        const noDevice = document.getElementById('noDevice');
+        const sessionEnded = document.getElementById('sessionEnded');
+        const deviceControls = document.getElementById('deviceControls');
+        const deviceActions = document.getElementById('deviceActions');
+        const backBtn = document.getElementById('backBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const sessionToggle = document.getElementById('sessionToggle');
+
+        if (device) {
+            deviceHeader.innerHTML = `
+                    <div>
+                        <span class="status-indicator ${sessionActive ? 'online' : 'offline'}"></span>
+                        <span class="font-medium">${device.name}</span>
+                        <span class="text-xs px-2 py-1 bg-${device.type.includes('ios') ? 'blue' : 'green'}-100 dark:bg-${device.type.includes('ios') ? 'blue' : 'green'}-900/20 text-${device.type.includes('ios') ? 'blue' : 'green'}-800 dark:text-${device.type.includes('ios') ? 'blue' : 'green'}-200 rounded-full ml-2">${device.type.includes('ios') ? 'iOS' : 'Android'}${device.type.includes('simulator') || device.type.includes('emulator') ? ' ' + (device.type.includes('simulator') ? 'Simulator' : 'Emulator') : ''}</span>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <span>UDID: ${device.udid}</span>
+                    </div>
+                `;
+            sessionToggle.style.display = 'inline-flex';
+            sessionToggle.textContent = sessionActive ? 'Stop Session' : 'Start Session';
+            screen.style.display = sessionActive ? 'block' : 'none';
+            noDevice.style.display = !currentUdid ? 'flex' : 'none';
+            sessionEnded.style.display = currentUdid && !sessionActive ? 'block' : 'none';
+            deviceControls.style.display = sessionActive ? 'flex' : 'none';
+            deviceActions.style.display = sessionActive ? 'block' : 'none';
+            backBtn.style.display = device.type.includes('android') && sessionActive ? 'inline-flex' : 'none';
+            menuBtn.style.display = device.type.includes('android') && sessionActive ? 'inline-flex' : 'none';
+        } else {
+            deviceHeader.innerHTML = `
+                    <div>
+                        <span class="status-indicator offline"></span>
+                        <span class="font-medium">No Device Selected</span>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <span>Please select a device</span>
+                    </div>
+                `;
+            sessionToggle.style.display = 'none';
+            screen.style.display = 'none';
+            noDevice.style.display = 'flex';
+            sessionEnded.style.display = 'none';
+            deviceControls.style.display = 'none';
+            deviceActions.style.display = 'none';
+        }
+    }
+
+    async function selectDevice(value) {
         if (!value) return;
         const [deviceType, udid] = value.split('|');
-        selectDeviceFromUtils(deviceType, udid);
+        const deviceListItems = document.querySelectorAll('.device-list-item');
+        deviceListItems.forEach(item => item.classList.remove('active'));
+        const selectedItem = document.querySelector(`.device-list-item[data-device="${value}"]`);
+        if (selectedItem) selectedItem.classList.add('active');
+
+        if (currentUdid && currentUdid !== udid && sessionActive) {
+            await stopSession();
+        }
+
+        currentUdid = udid;
+        currentDeviceType = deviceType;
+        const deviceName = selectedItem.querySelector('.font-medium').textContent;
+        updateDeviceView({ udid, name: deviceName, type: deviceType });
     }
+
+    async function toggleSession() {
+        if (!currentUdid || !currentDeviceType) {
+            showError('Please select a device first');
+            return;
+        }
+
+        showLoading();
+        try {
+            if (sessionActive) {
+                await stopSession();
+                updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`).textContent, type: currentDeviceType });
+            } else {
+                await startSession(currentUdid, currentDeviceType);
+                deviceScreenSize = await fetchScreenSize(currentUdid);
+                if (!deviceScreenSize) throw new Error("Failed to fetch screen size");
+                sessionActive = true;
+                updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`).textContent, type: currentDeviceType });
+                refreshScreenshot(currentUdid);
+                setRefreshInterval(10000);
+            }
+        } catch (error) {
+            sessionActive = false;
+            updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+            showError(error.message.includes("port") ? "Failed to start session: Port conflict. Please try again." : "Failed to manage session. Please try again.");
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Event Listeners for Device Controls
+    document.addEventListener('DOMContentLoaded', () => {
+        const screen = document.getElementById('screen');
+        const homeBtn = document.getElementById('homeBtn');
+        const backBtn = document.getElementById('backBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const sessionToggle = document.getElementById('sessionToggle');
+        const installFromStore = document.getElementById('installFromStore');
+        const storeInstallModal = document.getElementById('storeInstallModal');
+        const closeStoreModal = document.getElementById('closeStoreModal');
+        const cancelStoreInstall = document.getElementById('cancelStoreInstall');
+        const confirmStoreInstall = document.getElementById('confirmStoreInstall');
+        const appName = document.getElementById('appName');
+        const appUpload = document.getElementById('appUpload');
+
+        screen.addEventListener('click', tapOnImage);
+        homeBtn.addEventListener('click', async () => {
+            try {
+                await pressHome(currentUdid, currentDeviceType);
+                setRefreshInterval(700);
+                setTimeout(() => setRefreshInterval(10000), 30000);
+            } catch (error) {
+                sessionActive = false;
+                await stopSession();
+                updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+                showError("Action failed: Session lost.");
+            }
+        });
+        backBtn.addEventListener('click', async () => {
+            try {
+                await pressBack(currentUdid, currentDeviceType);
+                setRefreshInterval(700);
+                setTimeout(() => setRefreshInterval(10000), 30000);
+            } catch (error) {
+                sessionActive = false;
+                await stopSession();
+                updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+                showError("Action failed: Session lost.");
+            }
+        });
+        menuBtn.addEventListener('click', async () => {
+            try {
+                await pressMenu(currentUdid, currentDeviceType);
+                setRefreshInterval(700);
+                setTimeout(() => setRefreshInterval(10000), 30000);
+            } catch (error) {
+                sessionActive = false;
+                await stopSession();
+                updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+                showError("Action failed: Session lost.");
+            }
+        });
+        sessionToggle.addEventListener('click', toggleSession);
+
+        // App Installation
+        installFromStore.addEventListener('click', function() {
+            if (!sessionActive) {
+                showError('Please start a session first');
+                return;
+            }
+            storeInstallModal.classList.remove('hidden');
+        });
+
+        closeStoreModal.addEventListener('click', function() {
+            storeInstallModal.classList.add('hidden');
+        });
+
+        cancelStoreInstall.addEventListener('click', function() {
+            storeInstallModal.classList.add('hidden');
+        });
+
+        confirmStoreInstall.addEventListener('click', function() {
+            if (appName.value.trim() === '') {
+                showError('Please enter an app name/package');
+                return;
+            }
+            showError(`Installing ${appName.value} from app store... (Functionality not implemented)`);
+            storeInstallModal.classList.add('hidden');
+            appName.value = '';
+        });
+
+        appUpload.addEventListener('change', function(e) {
+            if (!sessionActive) {
+                showError('Please start a session first');
+                return;
+            }
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                showError(`Uploading ${fileName} to device... (Functionality not implemented)`);
+            }
+        });
+    });
+
+    // Logout Button
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        if (sessionActive) {
+            await stopSession();
+        }
+        showError('Logout functionality not implemented');
+    });
 </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9309d11d99dfb041',t:'MTc0NDcwMzA1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

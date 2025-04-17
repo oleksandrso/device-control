@@ -8,13 +8,13 @@ import org.openqa.selenium.WebDriver;
 
 import javax.annotation.Nonnull;
 import java.net.URL;
+import java.net.ServerSocket;
 
 public class IOSSimulatorDriver implements WebDriverProvider {
 
     public static final String APPIUM_SERVER_URL = "http://192.168.0.118:4723";
     public static final String DEVICE_NAME = "iPhone Xs";
     public static final String DEVICE_UDID = "A126EF10-7E87-4F00-9A39-F9600EA57FDA";
-
 
     @Nonnull
     @Override
@@ -28,10 +28,22 @@ public class IOSSimulatorDriver implements WebDriverProvider {
         desiredCapabilities.setCapability("udid", DEVICE_UDID);
         desiredCapabilities.setCapability("deviceName", DEVICE_NAME);
 
+        // Динамическое выделение порта для WDA
+        int wdaPort = findFreePort();
+        desiredCapabilities.setCapability("wdaLocalPort", wdaPort);
+
         try {
             return new IOSDriver(new URL(APPIUM_SERVER_URL), desiredCapabilities);
         } catch (Exception e) {
             throw new RuntimeException("Не удалось создать драйвер iOS симулятора: " + e.getMessage(), e);
+        }
+    }
+
+    private int findFreePort() {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to find free port: " + e.getMessage(), e);
         }
     }
 }
