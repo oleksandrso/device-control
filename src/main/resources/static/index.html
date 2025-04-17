@@ -635,6 +635,19 @@
 </div>
 
 <script>
+    // Check if user is authenticated
+    fetch('/api/check-auth')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.isAuthenticated) {
+                window.location.href = '/login.html';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking authentication:', error);
+            window.location.href = '/login.html';
+        });
+
     // Theme Toggle
     const themeToggle = document.getElementById('themeToggle');
     const html = document.documentElement;
@@ -1280,7 +1293,16 @@
         if (sessionActive) {
             await stopSession();
         }
-        showError('Logout functionality not implemented');
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            window.location.href = '/login.html';
+        } catch (error) {
+            console.error('Error during logout:', error);
+            window.location.href = '/login.html';
+        }
     });
 </script>
 </body>

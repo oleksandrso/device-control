@@ -92,25 +92,41 @@
         html.classList.remove('dark');
     }
 
-    // Login Functionality (Simple Simulation)
+    // Login Functionality
     const loginBtn = document.getElementById('loginBtn');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const errorMessage = document.getElementById('errorMessage');
 
-    loginBtn.addEventListener('click', () => {
+    loginBtn.addEventListener('click', async () => {
         const username = usernameInput.value.trim();
         const password = passwordInput.value.trim();
 
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
 
-        if (username === 'admin' && password === 'password') {
-            window.location.href = 'index.html';
-        } else {
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                // Перенаправляем на главную страницу
+                window.location.href = '/index.html';
+            } else {
+                errorMessage.textContent = result.message;
+                errorMessage.style.display = 'block';
+            }
+        } catch (error) {
+            errorMessage.textContent = 'An error occurred. Please try again.';
             errorMessage.style.display = 'block';
         }
     });
 
-
+    // Скрыть сообщение об ошибке при вводе
     usernameInput.addEventListener('input', () => {
         errorMessage.style.display = 'none';
     });
