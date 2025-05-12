@@ -76,8 +76,17 @@ public class DeviceController {
     @PostMapping("/tap")
     public ResponseEntity<Map<String, String>> tap(@RequestBody Map<String, Object> request) {
         String udid = (String) request.get("udid");
-        int x = (int) request.get("x");
-        int y = (int) request.get("y");
+        Integer xObj = (Integer) request.get("x");
+        Integer yObj = (Integer) request.get("y");
+        if (xObj == null || yObj == null) {
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Missing x or y coordinates");
+            System.out.println("Tap failed for UDID: " + udid + ". Missing coordinates.");
+            return ResponseEntity.status(400).body(response);
+        }
+        int x = xObj;
+        int y = yObj;
         String deviceType = (String) request.getOrDefault("deviceType", "ios-real");
         System.out.println("Tap request for UDID: " + udid + " at (" + x + ", " + y + ")");
         Map<String, String> response = new HashMap<>();
