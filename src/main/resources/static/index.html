@@ -681,6 +681,9 @@
     let deviceScreenSize = null;
     let sessionActive = false;
     let refreshInterval = null;
+    let requestInProgress = false; // Lock for preventing concurrent requests
+    let screenshotInProgress = false; // Separate flag for screenshot operations
+    let requestTimeoutId = null; // Timeout ID for automatically resetting requestInProgress flag
     let editor;
 
     function updateEditorTheme() {
@@ -688,6 +691,25 @@
             editor.setTheme("ace/theme/tomorrow_night");
         } else {
             editor.setTheme("ace/theme/chrome");
+        }
+    }
+
+    // Helper function to safely set and reset the requestInProgress flag
+    function setRequestInProgress(inProgress) {
+        if (requestTimeoutId) {
+            clearTimeout(requestTimeoutId);
+            requestTimeoutId = null;
+        }
+
+        requestInProgress = inProgress;
+
+        if (inProgress) {
+            // Automatically reset the flag after 5 seconds to prevent deadlocks
+            requestTimeoutId = setTimeout(() => {
+                console.log("Request timeout reached, resetting requestInProgress flag");
+                requestInProgress = false;
+                requestTimeoutId = null;
+            }, 5000);
         }
     }
 
@@ -944,6 +966,14 @@
     }
 
     async function tap(udid, x, y, deviceType) {
+        // Only block if another user interaction is in progress
+        // Allow tap even if a screenshot is in progress
+        if (requestInProgress && !screenshotInProgress) {
+            console.log("Another user interaction is in progress, skipping tap");
+            return null;
+        }
+
+        setRequestInProgress(true);
         try {
             console.log(`Sending tap request: UDID=${udid}, x=${x}, y=${y}, deviceType=${deviceType}`);
             const response = await fetch('/api/tap', {
@@ -961,10 +991,20 @@
         } catch (error) {
             console.error("Tap failed:", error);
             throw error;
+        } finally {
+            setRequestInProgress(false);
         }
     }
 
     async function pressHome(udid, deviceType) {
+        // Only block if another user interaction is in progress
+        // Allow home button press even if a screenshot is in progress
+        if (requestInProgress && !screenshotInProgress) {
+            console.log("Another user interaction is in progress, skipping home button press");
+            return null;
+        }
+
+        setRequestInProgress(true);
         try {
             const response = await fetch('/api/press_home', {
                 method: 'POST',
@@ -981,10 +1021,20 @@
         } catch (error) {
             console.error("Home button press failed:", error);
             throw error;
+        } finally {
+            setRequestInProgress(false);
         }
     }
 
     async function pressBack(udid, deviceType) {
+        // Only block if another user interaction is in progress
+        // Allow back button press even if a screenshot is in progress
+        if (requestInProgress && !screenshotInProgress) {
+            console.log("Another user interaction is in progress, skipping back button press");
+            return null;
+        }
+
+        setRequestInProgress(true);
         try {
             const response = await fetch('/api/press_back', {
                 method: 'POST',
@@ -1001,10 +1051,20 @@
         } catch (error) {
             console.error("Back button press failed:", error);
             throw error;
+        } finally {
+            setRequestInProgress(false);
         }
     }
 
     async function pressMenu(udid, deviceType) {
+        // Only block if another user interaction is in progress
+        // Allow menu button press even if a screenshot is in progress
+        if (requestInProgress && !screenshotInProgress) {
+            console.log("Another user interaction is in progress, skipping menu button press");
+            return null;
+        }
+
+        setRequestInProgress(true);
         try {
             const response = await fetch('/api/press_menu', {
                 method: 'POST',
@@ -1021,16 +1081,35 @@
         } catch (error) {
             console.error("Menu button press failed:", error);
             throw error;
+        } finally {
+            setRequestInProgress(false);
         }
     }
 
     function refreshScreenshot(udid) {
+        // If a user interaction is in progress, skip the screenshot refresh
+        if (requestInProgress && !screenshotInProgress) {
+            console.log("User interaction in progress, skipping screenshot refresh");
+            return;
+        }
+
+        // If a screenshot is already in progress, skip this one
+        if (screenshotInProgress) {
+            console.log("Screenshot already in progress, skipping this refresh");
+            return;
+        }
+
+        screenshotInProgress = true;
         const screen = document.getElementById('screen');
         const url = `/api/screenshot/${udid}?t=${new Date().getTime()}`;
         screen.src = url;
+        screen.onload = () => {
+            screenshotInProgress = false;
+        };
         screen.onerror = async () => {
             console.error("Screenshot load failed");
             sessionActive = false;
+            screenshotInProgress = false;
             await stopSession();
             updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
             showError("Session lost. Please restart the session.");
@@ -1039,13 +1118,22 @@
 
     function setRefreshInterval(intervalMs) {
         if (refreshInterval) clearInterval(refreshInterval);
+
+        // Set a minimum interval of 2000ms (2 seconds) to prevent too frequent refreshes
+        const minInterval = 2000;
+        const actualInterval = Math.max(intervalMs, minInterval);
+
         refreshInterval = setInterval(() => {
             if (sessionActive && currentUdid) {
+                // We can refresh even if a user interaction is in progress
+                // The refreshScreenshot function will handle the logic to avoid interference
                 refreshScreenshot(currentUdid);
             } else {
                 clearInterval(refreshInterval);
             }
-        }, intervalMs);
+        }, actualInterval);
+
+        console.log(`Screenshot refresh interval set to ${actualInterval}ms`);
     }
 
     async function tapOnImage(event) {
@@ -1053,6 +1141,14 @@
             console.error("No active session or device screen size not available");
             return;
         }
+
+        // Only block taps if another user interaction is in progress
+        // Allow taps even if a screenshot is in progress
+        if (requestInProgress && !screenshotInProgress) {
+            console.log("Another user interaction is in progress, ignoring tap");
+            return;
+        }
+
         const img = event.target;
         const rect = img.getBoundingClientRect();
         const clickX = event.clientX - rect.left;
@@ -1079,9 +1175,13 @@
         console.log(`Device tap: (${deviceX}, ${deviceY}), Device size: (${deviceScreenSize.width}, ${deviceScreenSize.height})`);
 
         try {
-            await tap(currentUdid, deviceX, deviceY, currentDeviceType);
-            setRefreshInterval(700);
-            setTimeout(() => setRefreshInterval(10000), 30000);
+            const result = await tap(currentUdid, deviceX, deviceY, currentDeviceType);
+            if (result !== null) {  // Only change refresh interval if tap was successful
+                // Use a more reasonable refresh interval after user interaction (3 seconds)
+                setRefreshInterval(3000);
+                // Return to normal refresh interval (15 seconds) after 10 seconds
+                setTimeout(() => setRefreshInterval(15000), 10000);
+            }
         } catch (error) {
             sessionActive = false;
             await stopSession();
@@ -1184,7 +1284,8 @@
                 sessionActive = true;
                 updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`).textContent, type: currentDeviceType });
                 refreshScreenshot(currentUdid);
-                setRefreshInterval(10000);
+                // Use a more reasonable default refresh interval (15 seconds)
+                setRefreshInterval(15000);
             }
         } catch (error) {
             sessionActive = false;
@@ -1214,8 +1315,10 @@
         homeBtn.addEventListener('click', async () => {
             try {
                 await pressHome(currentUdid, currentDeviceType);
-                setRefreshInterval(700);
-                setTimeout(() => setRefreshInterval(10000), 30000);
+                // Use a more reasonable refresh interval after user interaction (3 seconds)
+                setRefreshInterval(3000);
+                // Return to normal refresh interval (15 seconds) after 10 seconds
+                setTimeout(() => setRefreshInterval(15000), 10000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
@@ -1226,8 +1329,10 @@
         backBtn.addEventListener('click', async () => {
             try {
                 await pressBack(currentUdid, currentDeviceType);
-                setRefreshInterval(700);
-                setTimeout(() => setRefreshInterval(10000), 30000);
+                // Use a more reasonable refresh interval after user interaction (3 seconds)
+                setRefreshInterval(3000);
+                // Return to normal refresh interval (15 seconds) after 10 seconds
+                setTimeout(() => setRefreshInterval(15000), 10000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
@@ -1238,8 +1343,10 @@
         menuBtn.addEventListener('click', async () => {
             try {
                 await pressMenu(currentUdid, currentDeviceType);
-                setRefreshInterval(700);
-                setTimeout(() => setRefreshInterval(10000), 30000);
+                // Use a more reasonable refresh interval after user interaction (3 seconds)
+                setRefreshInterval(3000);
+                // Return to normal refresh interval (15 seconds) after 10 seconds
+                setTimeout(() => setRefreshInterval(15000), 10000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();

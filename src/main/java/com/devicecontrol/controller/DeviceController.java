@@ -93,20 +93,61 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                Map<String, Object> params = new HashMap<>();
-                if (deviceType.startsWith("ios")) {
-                    params.put("x", x);
-                    params.put("y", y);
-                    params.put("duration", 0);
-                    driver.executeScript("mobile: tap", params);
-                } else {
-                    params.put("x", x);
-                    params.put("y", y);
-                    driver.executeScript("mobile: clickGesture", params);
+                try {
+                    Map<String, Object> params = new HashMap<>();
+                    if (deviceType.startsWith("ios")) {
+                        params.put("x", x);
+                        params.put("y", y);
+                        params.put("duration", 0);
+                        driver.executeScript("mobile: tap", params);
+                    } else {
+                        // Use clickGesture which is supported by the Android driver
+                        params.put("x", x);
+                        params.put("y", y);
+                        driver.executeScript("mobile: clickGesture", params);
+                    }
+                    response.put("status", "success");
+                    System.out.println("Tap successful for UDID: " + udid);
+                    return ResponseEntity.ok(response);
+                } catch (Exception e) {
+                    // Check if the error is related to UiAutomator2 server crash
+                    if (e.getMessage() != null && e.getMessage().contains("instrumentation process is not running")) {
+                        System.out.println("UiAutomator2 server crashed for UDID: " + udid + ". Attempting to restart session...");
+
+                        // Stop the current session
+                        appiumService.stopSession(udid);
+
+                        // Start a new session
+                        appiumService.startSession(udid, deviceType);
+
+                        // Get the new driver
+                        driver = appiumService.getDriver(udid);
+
+                        if (driver != null) {
+                            // Retry the operation with the new session
+                            Map<String, Object> params = new HashMap<>();
+                            if (deviceType.startsWith("ios")) {
+                                params.put("x", x);
+                                params.put("y", y);
+                                params.put("duration", 0);
+                                driver.executeScript("mobile: tap", params);
+                            } else {
+                                // Use clickGesture which is supported by the Android driver
+                                params.put("x", x);
+                                params.put("y", y);
+                                driver.executeScript("mobile: clickGesture", params);
+                            }
+                            response.put("status", "success");
+                            System.out.println("Tap successful after session restart for UDID: " + udid);
+                            return ResponseEntity.ok(response);
+                        } else {
+                            throw new Exception("Failed to restart session after UiAutomator2 server crash");
+                        }
+                    } else {
+                        // If it's not a UiAutomator2 server crash, rethrow the exception
+                        throw e;
+                    }
                 }
-                response.put("status", "success");
-                System.out.println("Tap successful for UDID: " + udid);
-                return ResponseEntity.ok(response);
             }
             response.put("status", "error");
             response.put("message", "Session not found");
@@ -129,14 +170,47 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                if (deviceType.startsWith("ios")) {
-                    driver.executeScript("mobile: pressButton", Map.of("name", "home"));
-                } else {
-                    driver.executeScript("mobile: pressKey", Map.of("keycode", 3));
+                try {
+                    if (deviceType.startsWith("ios")) {
+                        driver.executeScript("mobile: pressButton", Map.of("name", "home"));
+                    } else {
+                        driver.executeScript("mobile: pressKey", Map.of("keycode", 3));
+                    }
+                    response.put("status", "success");
+                    System.out.println("Home button pressed successfully for UDID: " + udid);
+                    return ResponseEntity.ok(response);
+                } catch (Exception e) {
+                    // Check if the error is related to UiAutomator2 server crash
+                    if (e.getMessage() != null && e.getMessage().contains("instrumentation process is not running")) {
+                        System.out.println("UiAutomator2 server crashed for UDID: " + udid + ". Attempting to restart session...");
+
+                        // Stop the current session
+                        appiumService.stopSession(udid);
+
+                        // Start a new session
+                        appiumService.startSession(udid, deviceType);
+
+                        // Get the new driver
+                        driver = appiumService.getDriver(udid);
+
+                        if (driver != null) {
+                            // Retry the operation with the new session
+                            if (deviceType.startsWith("ios")) {
+                                driver.executeScript("mobile: pressButton", Map.of("name", "home"));
+                            } else {
+                                driver.executeScript("mobile: pressKey", Map.of("keycode", 3));
+                            }
+                            response.put("status", "success");
+                            System.out.println("Home button pressed successfully after session restart for UDID: " + udid);
+                            return ResponseEntity.ok(response);
+                        } else {
+                            throw new Exception("Failed to restart session after UiAutomator2 server crash");
+                        }
+                    } else {
+                        // If it's not a UiAutomator2 server crash, rethrow the exception
+                        throw e;
+                    }
                 }
-                response.put("status", "success");
-                System.out.println("Home button pressed successfully for UDID: " + udid);
-                return ResponseEntity.ok(response);
             }
             response.put("status", "error");
             response.put("message", "Session not found");
@@ -159,10 +233,39 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                driver.executeScript("mobile: pressKey", Map.of("keycode", 4));
-                response.put("status", "success");
-                System.out.println("Back button pressed successfully for UDID: " + udid);
-                return ResponseEntity.ok(response);
+                try {
+                    driver.executeScript("mobile: pressKey", Map.of("keycode", 4));
+                    response.put("status", "success");
+                    System.out.println("Back button pressed successfully for UDID: " + udid);
+                    return ResponseEntity.ok(response);
+                } catch (Exception e) {
+                    // Check if the error is related to UiAutomator2 server crash
+                    if (e.getMessage() != null && e.getMessage().contains("instrumentation process is not running")) {
+                        System.out.println("UiAutomator2 server crashed for UDID: " + udid + ". Attempting to restart session...");
+
+                        // Stop the current session
+                        appiumService.stopSession(udid);
+
+                        // Start a new session
+                        appiumService.startSession(udid, deviceType);
+
+                        // Get the new driver
+                        driver = appiumService.getDriver(udid);
+
+                        if (driver != null) {
+                            // Retry the operation with the new session
+                            driver.executeScript("mobile: pressKey", Map.of("keycode", 4));
+                            response.put("status", "success");
+                            System.out.println("Back button pressed successfully after session restart for UDID: " + udid);
+                            return ResponseEntity.ok(response);
+                        } else {
+                            throw new Exception("Failed to restart session after UiAutomator2 server crash");
+                        }
+                    } else {
+                        // If it's not a UiAutomator2 server crash, rethrow the exception
+                        throw e;
+                    }
+                }
             }
             response.put("status", "error");
             response.put("message", "Session not found");
@@ -185,10 +288,39 @@ public class DeviceController {
         try {
             AppiumDriver driver = appiumService.getOrCreateDriver(udid, deviceType);
             if (driver != null) {
-                driver.executeScript("mobile: pressKey", Map.of("keycode", 187));
-                response.put("status", "success");
-                System.out.println("Menu button pressed successfully for UDID: " + udid);
-                return ResponseEntity.ok(response);
+                try {
+                    driver.executeScript("mobile: pressKey", Map.of("keycode", 187));
+                    response.put("status", "success");
+                    System.out.println("Menu button pressed successfully for UDID: " + udid);
+                    return ResponseEntity.ok(response);
+                } catch (Exception e) {
+                    // Check if the error is related to UiAutomator2 server crash
+                    if (e.getMessage() != null && e.getMessage().contains("instrumentation process is not running")) {
+                        System.out.println("UiAutomator2 server crashed for UDID: " + udid + ". Attempting to restart session...");
+
+                        // Stop the current session
+                        appiumService.stopSession(udid);
+
+                        // Start a new session
+                        appiumService.startSession(udid, deviceType);
+
+                        // Get the new driver
+                        driver = appiumService.getDriver(udid);
+
+                        if (driver != null) {
+                            // Retry the operation with the new session
+                            driver.executeScript("mobile: pressKey", Map.of("keycode", 187));
+                            response.put("status", "success");
+                            System.out.println("Menu button pressed successfully after session restart for UDID: " + udid);
+                            return ResponseEntity.ok(response);
+                        } else {
+                            throw new Exception("Failed to restart session after UiAutomator2 server crash");
+                        }
+                    } else {
+                        // If it's not a UiAutomator2 server crash, rethrow the exception
+                        throw e;
+                    }
+                }
             }
             response.put("status", "error");
             response.put("message", "Session not found");

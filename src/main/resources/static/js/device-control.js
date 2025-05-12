@@ -47,7 +47,7 @@ function setRefreshInterval(intervalMs) {
 }
 
 function startActiveRefresh() {
-    setRefreshInterval(700);
+    setRefreshInterval(2000); // Increased from 700ms to 2000ms to reduce server load
     if (activityTimeout) clearTimeout(activityTimeout);
     activityTimeout = setTimeout(() => {
         setRefreshInterval(10000);
