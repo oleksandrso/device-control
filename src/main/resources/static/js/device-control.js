@@ -24,7 +24,11 @@ async function initializeSession(udid, deviceType) {
         if (!deviceScreenSize) throw new Error("Failed to fetch screen size");
         console.log("Device screen size:", deviceScreenSize);
         sessionActive = true;
+
+        // Immediately get the first screenshot
         refreshScreenshot(udid);
+
+        // Then set up the normal refresh interval
         setRefreshInterval(10000);
     } catch (error) {
         sessionActive = false;
@@ -36,23 +40,64 @@ async function initializeSession(udid, deviceType) {
 }
 
 function setRefreshInterval(intervalMs) {
-    if (refreshInterval) clearInterval(refreshInterval);
-    refreshInterval = setInterval(async () => {
-        if (sessionActive) refreshScreenshot(getUdid());
-        else {
+    // Clear any existing interval
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+
+    console.log(`Setting refresh interval to ${intervalMs}ms`);
+
+    // Set up a new interval
+    refreshInterval = setInterval(() => {
+        if (sessionActive) {
+            refreshScreenshot(getUdid());
+        } else {
             clearInterval(refreshInterval);
+            refreshInterval = null;
             console.log("Session inactive, stopping screenshot refresh");
         }
     }, intervalMs);
 }
 
 function startActiveRefresh() {
-    setRefreshInterval(2000); // Increased from 700ms to 2000ms to reduce server load
-    if (activityTimeout) clearTimeout(activityTimeout);
-    activityTimeout = setTimeout(() => {
-        setRefreshInterval(10000);
-        console.log("Switching to idle refresh (10s)");
-    }, 30000);
+    // Clear any existing interval and timeout
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
+    if (activityTimeout) {
+        clearTimeout(activityTimeout);
+        activityTimeout = null;
+    }
+
+    // Get the device UDID
+    const udid = getUdid();
+
+    // Immediately refresh the screenshot
+    refreshScreenshot(udid);
+
+    // Set up a fast refresh interval (1 second)
+    console.log("Starting active refresh (1s)");
+    let refreshCount = 0;
+    refreshInterval = setInterval(() => {
+        if (sessionActive) {
+            refreshScreenshot(udid);
+            refreshCount++;
+
+            // After 3 refreshes (3 seconds), switch to idle mode
+            if (refreshCount >= 3) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+                setRefreshInterval(10000);
+                console.log("Switching to idle refresh (10s)");
+            }
+        } else {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+            console.log("Session inactive, stopping screenshot refresh");
+        }
+    }, 1000);
 }
 
 async function tapOnImage(event) {
@@ -197,11 +242,20 @@ function refreshScreenshot(udid) {
     const screen = document.getElementById('screen');
     const url = `/api/screenshot/${udid}?t=${new Date().getTime()}`;
     console.log("Requesting screenshot:", url);
-    screen.src = url;
-    screen.onerror = async () => {
+
+    // Create a new Image object to load the screenshot in the background
+    const img = new Image();
+    img.onload = function() {
+        // Only update the screen src if the session is still active
+        if (sessionActive) {
+            screen.src = url;
+        }
+    };
+    img.onerror = async () => {
         console.error("Screenshot load failed, checking session...");
         sessionActive = await checkSessionStatus(udid);
     };
+    img.src = url;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
