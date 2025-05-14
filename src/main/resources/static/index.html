@@ -1102,11 +1102,17 @@
         screenshotInProgress = true;
         const screen = document.getElementById('screen');
         const url = `/api/screenshot/${udid}?t=${new Date().getTime()}`;
-        screen.src = url;
-        screen.onload = () => {
+
+        // Create a new Image object to load the screenshot in the background
+        const img = new Image();
+        img.onload = function() {
+            // Only update the screen src if the session is still active
+            if (sessionActive) {
+                screen.src = url;
+            }
             screenshotInProgress = false;
         };
-        screen.onerror = async () => {
+        img.onerror = async () => {
             console.error("Screenshot load failed");
             sessionActive = false;
             screenshotInProgress = false;
@@ -1114,13 +1120,15 @@
             updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
             showError("Session lost. Please restart the session.");
         };
+        img.src = url;
     }
 
     function setRefreshInterval(intervalMs) {
         if (refreshInterval) clearInterval(refreshInterval);
 
-        // Set a minimum interval of 2000ms (2 seconds) to prevent too frequent refreshes
-        const minInterval = 2000;
+        // Set a minimum interval of 1000ms (1 second) to prevent too frequent refreshes
+        // but still allow responsive updates
+        const minInterval = 1000;
         const actualInterval = Math.max(intervalMs, minInterval);
 
         refreshInterval = setInterval(() => {
@@ -1177,10 +1185,10 @@
         try {
             const result = await tap(currentUdid, deviceX, deviceY, currentDeviceType);
             if (result !== null) {  // Only change refresh interval if tap was successful
-                // Use a more reasonable refresh interval after user interaction (3 seconds)
-                setRefreshInterval(3000);
-                // Return to normal refresh interval (15 seconds) after 10 seconds
-                setTimeout(() => setRefreshInterval(15000), 10000);
+                // Use a fast refresh interval after user interaction (1 second)
+                setRefreshInterval(1000);
+                // Return to normal refresh interval (5 seconds) after 3 seconds
+                setTimeout(() => setRefreshInterval(5000), 3000);
             }
         } catch (error) {
             sessionActive = false;
@@ -1284,8 +1292,8 @@
                 sessionActive = true;
                 updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`).textContent, type: currentDeviceType });
                 refreshScreenshot(currentUdid);
-                // Use a more reasonable default refresh interval (15 seconds)
-                setRefreshInterval(15000);
+                // Use a more responsive default refresh interval (5 seconds)
+                setRefreshInterval(5000);
             }
         } catch (error) {
             sessionActive = false;
@@ -1315,10 +1323,10 @@
         homeBtn.addEventListener('click', async () => {
             try {
                 await pressHome(currentUdid, currentDeviceType);
-                // Use a more reasonable refresh interval after user interaction (3 seconds)
-                setRefreshInterval(3000);
-                // Return to normal refresh interval (15 seconds) after 10 seconds
-                setTimeout(() => setRefreshInterval(15000), 10000);
+                // Use a fast refresh interval after user interaction (1 second)
+                setRefreshInterval(1000);
+                // Return to normal refresh interval (5 seconds) after 3 seconds
+                setTimeout(() => setRefreshInterval(5000), 3000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
@@ -1329,10 +1337,10 @@
         backBtn.addEventListener('click', async () => {
             try {
                 await pressBack(currentUdid, currentDeviceType);
-                // Use a more reasonable refresh interval after user interaction (3 seconds)
-                setRefreshInterval(3000);
-                // Return to normal refresh interval (15 seconds) after 10 seconds
-                setTimeout(() => setRefreshInterval(15000), 10000);
+                // Use a fast refresh interval after user interaction (1 second)
+                setRefreshInterval(1000);
+                // Return to normal refresh interval (5 seconds) after 3 seconds
+                setTimeout(() => setRefreshInterval(5000), 3000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
@@ -1343,10 +1351,10 @@
         menuBtn.addEventListener('click', async () => {
             try {
                 await pressMenu(currentUdid, currentDeviceType);
-                // Use a more reasonable refresh interval after user interaction (3 seconds)
-                setRefreshInterval(3000);
-                // Return to normal refresh interval (15 seconds) after 10 seconds
-                setTimeout(() => setRefreshInterval(15000), 10000);
+                // Use a fast refresh interval after user interaction (1 second)
+                setRefreshInterval(1000);
+                // Return to normal refresh interval (5 seconds) after 3 seconds
+                setTimeout(() => setRefreshInterval(5000), 3000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
