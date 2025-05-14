@@ -973,6 +973,12 @@
             return null;
         }
 
+        // Validate coordinates before sending request
+        if (x === undefined || y === undefined || isNaN(x) || isNaN(y)) {
+            console.error(`Invalid tap coordinates: x=${x}, y=${y}`);
+            return null;
+        }
+
         setRequestInProgress(true);
         try {
             console.log(`Sending tap request: UDID=${udid}, x=${x}, y=${y}, deviceType=${deviceType}`);
@@ -1105,30 +1111,68 @@
 
         // Create a new Image object to load the screenshot in the background
         const img = new Image();
+
+        // Set crossOrigin to anonymous to avoid CORS issues when drawing to canvas
+        img.crossOrigin = "anonymous";
+
         img.onload = function() {
-            // Only update the screen src if the session is still active
+            // Only update if the session is still active
             if (sessionActive) {
-                screen.src = url;
+                // Use the loaded image directly instead of making another request
+                screen.src = img.src;
             }
             screenshotInProgress = false;
         };
+
         img.onerror = async () => {
             console.error("Screenshot load failed");
-            sessionActive = false;
-            screenshotInProgress = false;
-            await stopSession();
-            updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
-            showError("Session lost. Please restart the session.");
+            // Try one more time before giving up
+            if (sessionActive) {
+                console.log("Retrying screenshot load...");
+                const retryUrl = `/api/screenshot/${udid}?t=${new Date().getTime()}&retry=true`;
+                const retryImg = new Image();
+                retryImg.crossOrigin = "anonymous";
+                retryImg.onload = function() {
+                    if (sessionActive) {
+                        screen.src = retryImg.src;
+                    }
+                    screenshotInProgress = false;
+                };
+                retryImg.onerror = async () => {
+                    console.error("Screenshot retry failed");
+                    sessionActive = false;
+                    screenshotInProgress = false;
+                    await stopSession();
+                    updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+                    showError("Session lost. Please restart the session.");
+                };
+                retryImg.src = retryUrl;
+            } else {
+                sessionActive = false;
+                screenshotInProgress = false;
+                await stopSession();
+                updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`)?.textContent || "Unknown", type: currentDeviceType });
+                showError("Session lost. Please restart the session.");
+            }
         };
+
+        // Add a timeout to prevent hanging if the server doesn't respond
+        setTimeout(() => {
+            if (screenshotInProgress) {
+                console.log("Screenshot timeout, continuing with UI updates");
+                screenshotInProgress = false;
+            }
+        }, 3000);
+
         img.src = url;
     }
 
     function setRefreshInterval(intervalMs) {
         if (refreshInterval) clearInterval(refreshInterval);
 
-        // Set a minimum interval of 1000ms (1 second) to prevent too frequent refreshes
-        // but still allow responsive updates
-        const minInterval = 1000;
+        // Set a minimum interval of 500ms (0.5 second) to allow more responsive updates
+        // while still preventing excessive server load
+        const minInterval = 500;
         const actualInterval = Math.max(intervalMs, minInterval);
 
         refreshInterval = setInterval(() => {
@@ -1166,6 +1210,12 @@
         const displayWidth = rect.width;
         const displayHeight = rect.height;
 
+        // Check if image dimensions are valid
+        if (imgWidth <= 0 || imgHeight <= 0) {
+            console.error(`Invalid image dimensions: width=${imgWidth}, height=${imgHeight}. Image may not be fully loaded.`);
+            return;
+        }
+
         const scaledX = clickX * (imgWidth / displayWidth);
         const scaledY = clickY * (imgHeight / displayHeight);
 
@@ -1177,6 +1227,12 @@
         const deviceX = Math.round((scaledX / imgWidth) * deviceScreenSize.width);
         const deviceY = Math.round((scaledY / imgHeight) * deviceScreenSize.height);
 
+        // Ensure coordinates are valid numbers
+        if (isNaN(deviceX) || isNaN(deviceY)) {
+            console.error(`Invalid tap coordinates: x=${deviceX}, y=${deviceY}`);
+            return;
+        }
+
         console.log(`Image click: (${clickX}, ${clickY}), Display size: (${displayWidth}, ${displayHeight})`);
         console.log(`Image natural size: (${imgWidth}, ${imgHeight})`);
         console.log(`Scaled click: (${scaledX}, ${scaledY})`);
@@ -1185,10 +1241,22 @@
         try {
             const result = await tap(currentUdid, deviceX, deviceY, currentDeviceType);
             if (result !== null) {  // Only change refresh interval if tap was successful
-                // Use a fast refresh interval after user interaction (1 second)
-                setRefreshInterval(1000);
-                // Return to normal refresh interval (5 seconds) after 3 seconds
-                setTimeout(() => setRefreshInterval(5000), 3000);
+                // Use the fastest possible refresh interval after user interaction (500ms)
+                setRefreshInterval(500);
+
+                // Create a stepped approach to gradually slow down refreshes
+                setTimeout(() => {
+                    if (sessionActive) setRefreshInterval(750);
+
+                    setTimeout(() => {
+                        if (sessionActive) setRefreshInterval(1000);
+
+                        // Return to normal refresh interval (3 seconds) after the stepped approach
+                        setTimeout(() => {
+                            if (sessionActive) setRefreshInterval(3000);
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
             }
         } catch (error) {
             sessionActive = false;
@@ -1292,8 +1360,8 @@
                 sessionActive = true;
                 updateDeviceView({ udid: currentUdid, name: document.querySelector(`.device-list-item[data-device="${currentDeviceType}|${currentUdid}"] .font-medium`).textContent, type: currentDeviceType });
                 refreshScreenshot(currentUdid);
-                // Use a more responsive default refresh interval (5 seconds)
-                setRefreshInterval(5000);
+                // Use a more responsive default refresh interval (3 seconds)
+                setRefreshInterval(3000);
             }
         } catch (error) {
             sessionActive = false;
@@ -1323,10 +1391,22 @@
         homeBtn.addEventListener('click', async () => {
             try {
                 await pressHome(currentUdid, currentDeviceType);
-                // Use a fast refresh interval after user interaction (1 second)
-                setRefreshInterval(1000);
-                // Return to normal refresh interval (5 seconds) after 3 seconds
-                setTimeout(() => setRefreshInterval(5000), 3000);
+                // Use the fastest possible refresh interval after user interaction (500ms)
+                setRefreshInterval(500);
+
+                // Create a stepped approach to gradually slow down refreshes
+                setTimeout(() => {
+                    if (sessionActive) setRefreshInterval(750);
+
+                    setTimeout(() => {
+                        if (sessionActive) setRefreshInterval(1000);
+
+                        // Return to normal refresh interval (3 seconds) after the stepped approach
+                        setTimeout(() => {
+                            if (sessionActive) setRefreshInterval(3000);
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
@@ -1337,10 +1417,22 @@
         backBtn.addEventListener('click', async () => {
             try {
                 await pressBack(currentUdid, currentDeviceType);
-                // Use a fast refresh interval after user interaction (1 second)
-                setRefreshInterval(1000);
-                // Return to normal refresh interval (5 seconds) after 3 seconds
-                setTimeout(() => setRefreshInterval(5000), 3000);
+                // Use the fastest possible refresh interval after user interaction (500ms)
+                setRefreshInterval(500);
+
+                // Create a stepped approach to gradually slow down refreshes
+                setTimeout(() => {
+                    if (sessionActive) setRefreshInterval(750);
+
+                    setTimeout(() => {
+                        if (sessionActive) setRefreshInterval(1000);
+
+                        // Return to normal refresh interval (3 seconds) after the stepped approach
+                        setTimeout(() => {
+                            if (sessionActive) setRefreshInterval(3000);
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
@@ -1351,10 +1443,22 @@
         menuBtn.addEventListener('click', async () => {
             try {
                 await pressMenu(currentUdid, currentDeviceType);
-                // Use a fast refresh interval after user interaction (1 second)
-                setRefreshInterval(1000);
-                // Return to normal refresh interval (5 seconds) after 3 seconds
-                setTimeout(() => setRefreshInterval(5000), 3000);
+                // Use the fastest possible refresh interval after user interaction (500ms)
+                setRefreshInterval(500);
+
+                // Create a stepped approach to gradually slow down refreshes
+                setTimeout(() => {
+                    if (sessionActive) setRefreshInterval(750);
+
+                    setTimeout(() => {
+                        if (sessionActive) setRefreshInterval(1000);
+
+                        // Return to normal refresh interval (3 seconds) after the stepped approach
+                        setTimeout(() => {
+                            if (sessionActive) setRefreshInterval(3000);
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
             } catch (error) {
                 sessionActive = false;
                 await stopSession();
