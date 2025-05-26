@@ -27,6 +27,7 @@ public class AndroidRealDriver implements WebDriverProvider {
         desiredCapabilities.setCapability("appium:deviceName", DEVICE_NAME);
         desiredCapabilities.setCapability("appium:allowInsecure", "adb_shell");
         desiredCapabilities.setCapability("appium:newCommandTimeout", 600);
+        desiredCapabilities.setCapability("appium:ignoreHiddenApiPolicyError", true);
 
         try {
             return new AndroidDriver(new URL(APPIUM_SERVER_URL), desiredCapabilities);
